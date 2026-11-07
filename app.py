@@ -50,7 +50,7 @@ PAGES = [
     "Overview", "Campaign Brief", "Campaign Analyzer", "Market & Audience",
     "Campaign Story", "Reward Strategy", "Pre-Launch Planner",
     "Marketing Studio", "Launch Manager", "Performance Analyst",
-    "Backer Communications", "Settings"
+    "Backer Communications", "Campaign Library", "Command Centre", "Autopilot", "Backer Discovery", "Creative Studio", "Settings"
 ]
 
 def handle_jarvis_event(event):
@@ -151,7 +151,7 @@ def brief_text():
     }
     return "\n".join(f"{labels[k]}: {v}" for k,v in C.items() if v)
 
-def ask_ai(task, extra="", temperature=0.65):
+def ask_ai(task, extra="", temperature=0.65, web_search=False):
     key = api_key()
     if not key:
         st.error("Add your Gemini API key in Settings before generating.")
@@ -186,6 +186,7 @@ Return a well-structured, specific, practical answer. Mark unverified claims cle
             url + "?key=" + key,
             headers={"Content-Type": "application/json"},
             json={"contents":[{"parts":[{"text":prompt}]}],
+                  "tools":[{"google_search":{}}] if web_search else None,
                   "generationConfig":{"temperature":temperature, "maxOutputTokens":6000}},
             timeout=90
         )
@@ -207,7 +208,128 @@ def page_header(title, subtitle):
     st.title(title)
     st.caption(subtitle)
 
-if page == "Overview":
+
+# Expanded campaign operations workspaces
+if "campaigns" not in st.session_state:
+    st.session_state.campaigns = {}
+if "campaign_metrics" not in st.session_state:
+    st.session_state.campaign_metrics = {"raised": 0.0, "backers": 0, "visits": 0, "email_signups": 0}
+if "action_tasks" not in st.session_state:
+    st.session_state.action_tasks = []
+
+if page == "Campaign Library":
+    page_header("Campaign Library", "Manage separate campaign workspaces and transfer backups between devices.")
+    st.warning("Campaign records are session-based in this version. Export a JSON backup to keep a permanent copy and import it when you return. Secure cloud database sync still needs a private database connection.")
+    left, right = st.columns(2)
+    with left:
+        st.subheader("Save current campaign")
+        save_name = st.text_input("Library name", C.get("name") or "Untitled campaign")
+        if st.button("Save campaign"):
+            if save_name.strip():
+                snap = dict(C)
+                snap["name"] = save_name.strip()
+                st.session_state.campaigns[save_name.strip()] = snap
+                st.success("Campaign saved in this session.")
+    with right:
+        st.subheader("Open a campaign")
+        names = list(st.session_state.campaigns)
+        if names:
+            selected = st.selectbox("Saved campaigns", names)
+            if st.button("Open campaign"):
+                st.session_state.campaign = dict(st.session_state.campaigns[selected])
+                st.rerun()
+            if st.button("Delete campaign"):
+                del st.session_state.campaigns[selected]
+                st.rerun()
+        else:
+            st.info("No campaigns saved yet.")
+    backup = json.dumps({"campaigns":st.session_state.campaigns,"current_campaign":C}, indent=2)
+    st.download_button("Export campaign backup", backup, "campaign-os-backup.json", "application/json")
+    upload = st.file_uploader("Import campaign backup", type=["json"])
+    if upload and st.button("Import backup"):
+        try:
+            data = json.loads(upload.getvalue().decode("utf-8"))
+            if "campaigns" in data:
+                st.session_state.campaigns.update(data.get("campaigns", {}))
+                if isinstance(data.get("current_campaign"), dict):
+                    st.session_state.campaign = data["current_campaign"]
+            else:
+                st.session_state.campaign = data
+            st.success("Import complete.")
+            st.rerun()
+        except Exception as exc:
+            st.error(f"Could not import backup: {exc}")
+
+elif page == "Command Centre":
+    page_header("Campaign Command Centre", "Track funding, traffic, backers and conversion using your actual numbers.")
+    m = st.session_state.campaign_metrics
+    a,b,c,d = st.columns(4)
+    m["raised"] = a.number_input("Amount raised", min_value=0.0, value=float(m["raised"]), step=10.0)
+    m["backers"] = b.number_input("Backers", min_value=0, value=int(m["backers"]))
+    m["visits"] = c.number_input("Page visits", min_value=0, value=int(m["visits"]))
+    m["email_signups"] = d.number_input("Email signups", min_value=0, value=int(m["email_signups"]))
+    try:
+        goal = float(str(C.get("goal","0")).replace(",","").replace("$",""))
+    except Exception:
+        goal = 0.0
+    progress = m["raised"] / goal * 100 if goal > 0 else 0
+    conversion = m["backers"] / m["visits"] * 100 if m["visits"] else 0
+    signup_rate = m["email_signups"] / m["visits"] * 100 if m["visits"] else 0
+    k1,k2,k3,k4 = st.columns(4)
+    k1.metric("Funding progress", f"{progress:.1f}%" if goal else "Set numeric goal")
+    k2.metric("Raised", f"{m['raised']:,.2f} {C.get('currency','USD')}")
+    k3.metric("Backer conversion", f"{conversion:.2f}%")
+    k4.metric("Email signup rate", f"{signup_rate:.2f}%")
+    if goal:
+        st.progress(min(max(progress/100,0.0),1.0))
+    st.caption("These are current snapshots, not historical trends. Keep dated records separately for trend analysis.")
+    if st.button("Ask J.A.R.V.I.S. to diagnose metrics"):
+        ask_ai("Diagnose the funnel using only supplied numbers. Calculate rates, identify bottlenecks, explain uncertainty, and propose three measurable tests.", json.dumps({"goal":goal,**m}))
+
+elif page == "Autopilot":
+    page_header("Autopilot Mission Planner", "Convert a campaign objective into sequenced tasks with owners and completion criteria.")
+    objective = st.text_area("Mission objective", height=90)
+    horizon = st.selectbox("Planning horizon", ["7 days","14 days","30 days","45 days","60 days","90 days"])
+    capacity = st.text_area("Team, available time, budget, assets and constraints", height=100)
+    if st.button("Generate mission plan", type="primary"):
+        ask_ai(f"Create a {horizon} execution plan for this objective: {objective}. Include priorities, dependencies, owner roles, milestones, measurable done criteria, risks, weekly reviews and first 48-hour actions. Never claim actions were completed.", capacity)
+    st.divider()
+    st.subheader("Action tracker")
+    with st.form("add_action"):
+        title = st.text_input("Action item")
+        owner = st.text_input("Owner")
+        due = st.date_input("Due date")
+        add = st.form_submit_button("Add action")
+    if add and title.strip():
+        st.session_state.action_tasks.append({"task":title.strip(),"owner":owner,"due":str(due),"done":False})
+        st.rerun()
+    for i, task in enumerate(st.session_state.action_tasks):
+        x,y = st.columns([5,1])
+        x.write(f"{'Done' if task['done'] else 'To do'} — {task['task']} · {task['owner']} · {task['due']}")
+        if y.button("Toggle", key=f"toggle_{i}"):
+            task["done"] = not task["done"]
+            st.rerun()
+    if st.session_state.action_tasks:
+        st.download_button("Export actions", json.dumps(st.session_state.action_tasks,indent=2), "campaign-actions.json")
+
+elif page == "Backer Discovery":
+    page_header("Backer Discovery Engine", "Identify relevant communities, creators, partners and media without inventing contacts.")
+    geography = st.text_input("Target geography")
+    audience = st.text_area("Ideal backer profile", C.get("audience",""), height=90)
+    value = st.text_area("Why would a community or partner care?", C.get("benefit",""), height=80)
+    if st.button("Build discovery plan", type="primary"):
+        ask_ai("Build a backer discovery plan: community types, creator categories, partner types, search phrases, qualification criteria, personalization fields, a 2-week ethical outreach process, and lead tracker columns. Do not invent real names, emails, audience sizes or partnerships.", f"Geography: {geography}\nAudience: {audience}\nPartner value: {value}", web_search=True)
+
+elif page == "Creative Studio":
+    page_header("Creative Studio", "Create production briefs and image/video concepts from verified campaign facts.")
+    asset = st.selectbox("Asset type", ["Hero campaign image","Social media graphics","Paid ad concepts","Campaign video storyboard","Product explainer","Launch banner"])
+    channel = st.selectbox("Channel", ["Kickstarter / Indiegogo","Instagram","Facebook","TikTok","YouTube","Email / press"])
+    notes = st.text_area("Brand style, colors, available images, exact text and visual restrictions", height=120)
+    if st.button("Generate creative brief", type="primary"):
+        ask_ai(f"Create a production-ready creative brief for {asset} on {channel}. Include composition, copy hierarchy, visual direction, accessibility, variants to test and image-generation prompts. Do not show unverified product features, endorsements or results.", notes)
+
+elif page == "Overview":
+
     st.markdown('<div class="hero"><h1>🚀 Crowdfunding Campaign OS</h1><p>Your workspace for turning a campaign idea into a researched, prepared, and well-managed launch.</p></div>', unsafe_allow_html=True)
     st.subheader("Campaign workspace")
     a,b,c = st.columns(3)
