@@ -14,6 +14,12 @@ AI-powered workspace for crowdfunding campaign strategy, creation, marketing, la
 - Launch runbook and campaign performance analysis
 - Transparent backer updates and responses
 - **J.A.R.V.I.S. voice and hand-gesture controls:** browser speech recognition, spoken responses, and camera-based gesture shortcuts for workspace navigation
+- **Campaign Library:** save multiple campaign briefs in-session and export/import JSON backups
+- **Command Centre:** funding progress, backer conversion, email signup rate and funnel snapshot calculations
+- **Autopilot Mission Planner:** objective-based execution plans plus a lightweight action tracker
+- **Backer Discovery Engine:** research workflow for communities, creators, partners and outreach criteria
+- **Creative Studio:** production briefs, visual concepts, video storyboards and image-generation prompts
+- **Grounded market research:** optional Google Search grounding through Gemini for current competitor, audience and category research
 
 ## J.A.R.V.I.S. controls
 
@@ -53,9 +59,9 @@ Never commit API keys or other secrets to this repository.
 ## Important limitations
 
 - This is a J.A.R.V.I.S.-inspired interface, not the fictional Iron Man AI.
-- The first version does not browse the live web or independently verify market research.
-- Market and competitor analysis is based on evidence and source material supplied by the user.
-- Campaign brief information is held in the current app session; this initial version does not provide a permanent campaign database or user accounts.
+- Campaign Library, action tracker and dashboard inputs are held in the app session. Export JSON backups to retain campaign data across sessions; secure hosted database sync and user accounts are not included yet.
+- Google Search grounding can surface current web context, but sources must be checked for authority, date, geography and relevance. Search results are not a substitute for primary research.
+- No marketing messages are automatically sent, no ads are launched, and no social posts are published. Generated outreach remains a draft for human approval.
 - AI-generated claims, costs, reward prices, legal requirements, platform rules, and delivery estimates must be checked before publication.
 - No AI system can guarantee that a crowdfunding campaign will reach its funding goal.
 
