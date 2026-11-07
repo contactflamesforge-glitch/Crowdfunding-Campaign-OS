@@ -5,9 +5,10 @@ import streamlit as st
 import streamlit.components.v1 as components
 from pathlib import Path
 
+st.set_page_config(page_title="Crowdfunding Campaign OS", page_icon="🚀", layout="wide")
+
 jarvis_controls = components.declare_component("jarvis_controls", path=str(Path(__file__).parent / "jarvis_component"))
 
-st.set_page_config(page_title="Crowdfunding Campaign OS", page_icon="🚀", layout="wide")
 
 st.markdown("""
 <style>
