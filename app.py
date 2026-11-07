@@ -80,7 +80,8 @@ C = st.session_state.campaign
 st.sidebar.title("🚀 Campaign OS")
 st.sidebar.subheader("J.A.R.V.I.S. Voice & Gesture Control")
 jarvis_event = jarvis_controls(reply=st.session_state.get("jarvis_reply", ""), key="jarvis_control", default=None)
-if jarvis_event:
+if jarvis_event and jarvis_event.get("at") != st.session_state.get("jarvis_last_event_at"):
+    st.session_state["jarvis_last_event_at"] = jarvis_event.get("at")
     handle_jarvis_event(jarvis_event)
 page = st.sidebar.radio("Workspace", PAGES, key="workspace_page")
 st.sidebar.caption("Plan carefully. Create honestly. Launch with evidence.")
