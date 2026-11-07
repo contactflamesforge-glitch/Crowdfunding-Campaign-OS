@@ -203,8 +203,19 @@ Return a well-structured, specific, practical answer. Mark unverified claims cle
                 st.code(response.text[:2500])
             return
         data = response.json()
-        text = data["candidates"][0]["content"]["parts"][0]["text"]
+        parts = data["candidates"][0]["content"]["parts"]
+        text = "".join(part.get("text", "") for part in parts if "text" in part)
         st.markdown(text)
+        grounding = data["candidates"][0].get("groundingMetadata", {})
+        sources = grounding.get("groundingChunks", [])
+        if sources:
+            st.subheader("Web sources used")
+            for source in sources:
+                web = source.get("web", {})
+                uri = web.get("uri", "")
+                title = web.get("title", uri)
+                if uri:
+                    st.markdown(f"- [{title}]({uri})")
         st.download_button("Download this result", text, file_name="campaign-os-output.txt")
     except requests.exceptions.Timeout:
         st.error("The request timed out. Try again with a shorter task.")
@@ -386,7 +397,7 @@ elif page == "Campaign Analyzer":
 
 elif page == "Market & Audience":
     page_header("Market & Audience Intelligence", "Build a useful research plan and understand potential backers.")
-    st.info("This version does not browse the live web. It will not pretend to have verified competitors or market statistics. Paste research, links' contents, or interview notes for evidence-based analysis.")
+    st.info("Live Google Search grounding is enabled for this workspace. Check every surfaced source for credibility, date and relevance. Paste research, links' contents, or interview notes for evidence-based analysis.")
     research = st.text_area("Paste research, competitor notes, customer interviews, survey results, or source excerpts", height=180)
     if st.button("Research market and audience", type="primary"):
         ask_ai("Research the campaign category and audience using Google Search grounding. Find relevant competitors, alternatives, audience communities, current category context and potential partners. Cite source URLs in the response. Separate verified findings from hypotheses, note dates and geography, and do not infer market size without reliable evidence.", research, web_search=True)
