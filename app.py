@@ -12,11 +12,29 @@ jarvis_controls = components.declare_component("jarvis_controls", path=str(Path(
 
 st.markdown("""
 <style>
-.block-container {padding-top: 2rem; max-width: 1250px;}
-.hero {padding: 1.5rem 1.7rem; border-radius: 16px; background: linear-gradient(120deg,#14213d,#244b75); color: white; margin-bottom: 1rem;}
-.hero h1 {color:white; margin:0;}
-.hero p {color:#e5edf7; margin:.4rem 0 0 0;}
-.small-note {color: #777; font-size: .88rem;}
+@import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;500;600;700;800&family=Rajdhani:wght@400;500;600;700&display=swap');
+:root{--neon:#35e8ff;--violet:#9b72ff;--mint:#54ffd0;--ink:#07111f}
+.stApp{background:radial-gradient(ellipse at 12% 4%,rgba(23,91,143,.28),transparent 36%),radial-gradient(ellipse at 88% 18%,rgba(101,44,168,.2),transparent 34%),linear-gradient(145deg,#050b16 0%,#0a1425 52%,#080d1a 100%);color:#eaf6ff;font-family:'Rajdhani',sans-serif}
+.block-container{padding-top:1.7rem;max-width:1450px}
+h1,h2,h3{font-family:'Orbitron',sans-serif!important;letter-spacing:.04em;color:#eafaff!important}
+p,label,.stMarkdown,.stCaption{color:#c7d9ee}
+.hero{position:relative;overflow:hidden;padding:2rem;border:1px solid rgba(53,232,255,.42);border-radius:22px;background:linear-gradient(115deg,rgba(9,35,61,.96),rgba(34,22,73,.86));box-shadow:0 0 28px rgba(53,232,255,.13),inset 0 0 30px rgba(94,126,255,.08);margin-bottom:1.3rem;animation:rise .8s ease both}
+.hero:after{content:'';position:absolute;inset:-80% -30%;background:linear-gradient(110deg,transparent 45%,rgba(53,232,255,.08) 50%,transparent 55%);animation:sweep 7s linear infinite}
+.hero h1{font-size:clamp(1.5rem,4vw,2.4rem);text-shadow:0 0 18px rgba(53,232,255,.45);margin:0}
+.hero p{color:#c5eaff;margin:.5rem 0 0}
+@keyframes sweep{to{transform:translateX(45%)}}
+@keyframes rise{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:translateY(0)}}
+@keyframes pulse{50%{box-shadow:0 0 22px rgba(53,232,255,.28)}}
+section[data-testid="stSidebar"]{background:linear-gradient(180deg,#081629,#10112b 70%,#090f1c);border-right:1px solid rgba(53,232,255,.25)}
+section[data-testid="stSidebar"] h1,section[data-testid="stSidebar"] h2,section[data-testid="stSidebar"] h3{font-family:'Orbitron',sans-serif!important}
+.stButton>button,.stDownloadButton>button{border:1px solid rgba(53,232,255,.7);border-radius:12px;background:linear-gradient(110deg,#075b79,#47318c);color:#fff;font-weight:700;box-shadow:0 0 14px rgba(53,232,255,.12);transition:all .2s ease}
+.stButton>button:hover,.stDownloadButton>button:hover{border-color:#a4f8ff;transform:translateY(-2px);box-shadow:0 0 22px rgba(53,232,255,.3)}
+.stTextInput input,.stTextArea textarea,.stSelectbox div[data-baseweb="select"]>div,.stDateInput input{background:#0d1b2e!important;color:#eaf6ff!important;border-color:#28516c!important;border-radius:10px!important}
+div[data-testid="stMetric"]{background:linear-gradient(145deg,rgba(12,36,59,.9),rgba(32,24,62,.8));padding:14px;border:1px solid rgba(53,232,255,.25);border-radius:14px;box-shadow:inset 0 0 20px rgba(53,232,255,.04)}
+div[data-testid="stAlert"]{border-radius:13px}
+.stRadio label{color:#d8f5ff!important}
+hr{border-color:rgba(53,232,255,.18)}
+.small-note{color:#9bb5cc;font-size:.9rem}
 </style>
 """, unsafe_allow_html=True)
 
@@ -63,15 +81,25 @@ def handle_jarvis_event(event):
             st.session_state["jarvis_reply"] = "I heard you. Try saying open Campaign Analyzer, open Marketing Studio, or open Launch Manager."
             return
     elif event.get("type") == "gesture":
-        gestures = {
-            "Open_Palm": "Overview",
-            "Victory": "Marketing Studio",
-            "Pointing_Up": "Launch Manager",
-            "Thumb_Up": "Campaign Analyzer"
-        }
-        target = gestures.get(event.get("gesture"))
-        if event.get("gesture") == "Closed_Fist":
-            st.session_state["jarvis_reply"] = "Okay. I have stopped speaking."
+        gesture = event.get("gesture")
+        if gesture == "Closed_Fist":
+            st.session_state["jarvis_reply"] = "Back. Returning to the previous workspace."
+            st.session_state["jarvis_nav_action"] = "back"
+            return
+        if gesture == "ILoveYou":
+            st.session_state["jarvis_reply"] = "JARVIS exiting gesture mode. Returning to Overview."
+            st.session_state["jarvis_nav_action"] = "exit"
+            st.session_state["workspace_page"] = "Overview"
+            return
+        if gesture == "Victory":
+            st.session_state["jarvis_reply"] = "Selected. Opening the highlighted workspace."
+            st.session_state["jarvis_nav_action"] = "select"
+            return
+        if gesture in ("Thumb_Up", "Pointing_Up"):
+            st.session_state["jarvis_nav_action"] = "up"
+            return
+        if gesture in ("Thumb_Down", "Pointing_Down"):
+            st.session_state["jarvis_nav_action"] = "down"
             return
     if target:
         st.session_state["workspace_page"] = target
@@ -84,7 +112,24 @@ jarvis_event = jarvis_controls(reply=st.session_state.get("jarvis_reply", ""), k
 if jarvis_event and jarvis_event.get("at") != st.session_state.get("jarvis_last_event_at"):
     st.session_state["jarvis_last_event_at"] = jarvis_event.get("at")
     handle_jarvis_event(jarvis_event)
-page = st.sidebar.radio("Workspace", PAGES, key="workspace_page")
+if "workspace_page" not in st.session_state:
+    st.session_state["workspace_page"] = "Overview"
+if "jarvis_page_index" not in st.session_state:
+    st.session_state["jarvis_page_index"] = PAGES.index(st.session_state["workspace_page"])
+nav_action = st.session_state.pop("jarvis_nav_action", None)
+if nav_action == "up":
+    st.session_state["jarvis_page_index"] = (st.session_state["jarvis_page_index"] - 1) % len(PAGES)
+elif nav_action == "down":
+    st.session_state["jarvis_page_index"] = (st.session_state["jarvis_page_index"] + 1) % len(PAGES)
+elif nav_action == "select":
+    st.session_state["workspace_page"] = PAGES[st.session_state["jarvis_page_index"]]
+elif nav_action == "back":
+    st.session_state["jarvis_page_index"] = PAGES.index("Overview")
+    st.session_state["workspace_page"] = "Overview"
+if st.session_state.get("workspace_page") in PAGES and not nav_action:
+    st.session_state["jarvis_page_index"] = PAGES.index(st.session_state["workspace_page"])
+page = st.sidebar.radio("Workspace", PAGES, key="workspace_page", index=st.session_state["jarvis_page_index"])
+st.session_state["jarvis_page_index"] = PAGES.index(page)
 st.sidebar.caption("Plan carefully. Create honestly. Launch with evidence.")
 
 def api_key():
