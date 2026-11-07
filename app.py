@@ -50,7 +50,7 @@ PAGES = [
     "Overview", "Campaign Brief", "Campaign Analyzer", "Market & Audience",
     "Campaign Story", "Reward Strategy", "Pre-Launch Planner",
     "Marketing Studio", "Launch Manager", "Performance Analyst",
-    "Backer Communications", "Campaign Library", "Command Centre", "Autopilot", "Backer Discovery", "Creative Studio", "Settings"
+    "Backer Communications", "Campaign Library", "Command Centre", "Autopilot", "Backer Discovery", "Creative Studio", "Cloud Account", "Settings"
 ]
 
 def handle_jarvis_event(event):
@@ -222,6 +222,66 @@ Return a well-structured, specific, practical answer. Mark unverified claims cle
     except Exception as e:
         st.error(f"Could not generate a response: {e}")
 
+
+def supabase_config():
+    try:
+        url = st.secrets.get("SUPABASE_URL", "")
+        key = st.secrets.get("SUPABASE_PUBLISHABLE_KEY", "")
+    except Exception:
+        url, key = "", ""
+    return (url or os.getenv("SUPABASE_URL", "")).rstrip("/"), key or os.getenv("SUPABASE_PUBLISHABLE_KEY", "")
+
+def supabase_request(method, path, token=None, params=None, payload=None, prefer=None):
+    base, public_key = supabase_config()
+    if not base or not public_key:
+        raise RuntimeError("Supabase is not configured. Add SUPABASE_URL and SUPABASE_PUBLISHABLE_KEY to Streamlit Secrets.")
+    headers = {"apikey": public_key, "Content-Type": "application/json"}
+    if token:
+        headers["Authorization"] = "Bearer " + token
+    else:
+        headers["Authorization"] = "Bearer " + public_key
+    if prefer:
+        headers["Prefer"] = prefer
+    response = requests.request(method, base + path, headers=headers, params=params, json=payload, timeout=30)
+    if not response.ok:
+        try:
+            detail = response.json().get("message") or response.json().get("msg") or response.text
+        except Exception:
+            detail = response.text
+        raise RuntimeError(f"Supabase error ({response.status_code}): {detail}")
+    if response.status_code == 204 or not response.text:
+        return None
+    return response.json()
+
+def cloud_user():
+    return st.session_state.get("supabase_user")
+
+def cloud_token():
+    return st.session_state.get("supabase_access_token")
+
+def cloud_save_campaign(name):
+    user = cloud_user()
+    token = cloud_token()
+    if not user or not token:
+        raise RuntimeError("Sign in to your cloud account first.")
+    payload = {"user_id": user["id"], "name": name, "campaign_data": dict(st.session_state.campaign),
+               "metrics": dict(st.session_state.campaign_metrics), "action_tasks": list(st.session_state.action_tasks)}
+    return supabase_request("POST", "/rest/v1/campaigns", token=token,
+        params={"on_conflict":"user_id,name"}, payload=payload,
+        prefer="resolution=merge-duplicates,return=representation")
+
+def cloud_list_campaigns():
+    user = cloud_user()
+    return supabase_request("GET", "/rest/v1/campaigns", token=cloud_token(),
+        params={"select":"id,name,updated_at,campaign_data,metrics,action_tasks",
+                "user_id":f"eq.{user['id']}", "order":"updated_at.desc"})
+
+def cloud_open_campaign(record):
+    st.session_state.campaign = record.get("campaign_data") or {}
+    st.session_state.campaign_metrics = record.get("metrics") or {"raised":0.0,"backers":0,"visits":0,"email_signups":0}
+    st.session_state.action_tasks = record.get("action_tasks") or []
+    st.rerun()
+
 def page_header(title, subtitle):
     st.title(title)
     st.caption(subtitle)
@@ -237,7 +297,48 @@ if "action_tasks" not in st.session_state:
 
 if page == "Campaign Library":
     page_header("Campaign Library", "Manage separate campaign workspaces and transfer backups between devices.")
-    st.warning("Campaign records are session-based in this version. Export a JSON backup to keep a permanent copy and import it when you return. Secure cloud database sync still needs a private database connection.")
+    if cloud_user() and cloud_token():
+        st.success("Cloud storage connected · " + cloud_user().get("email", "signed in"))
+        cloud_name = st.text_input("Cloud campaign name", C.get("name") or "Untitled campaign", key="cloud_save_name")
+        c1, c2 = st.columns(2)
+        if c1.button("Save current campaign to cloud", type="primary"):
+            try:
+                cloud_save_campaign(cloud_name.strip() or "Untitled campaign")
+                st.success("Campaign saved to your private cloud database.")
+            except Exception as exc:
+                st.error(str(exc))
+        if c2.button("Refresh cloud campaigns"):
+            try:
+                st.session_state.cloud_campaign_records = cloud_list_campaigns()
+            except Exception as exc:
+                st.error(str(exc))
+        if "cloud_campaign_records" not in st.session_state:
+            try:
+                st.session_state.cloud_campaign_records = cloud_list_campaigns()
+            except Exception as exc:
+                st.session_state.cloud_campaign_records = []
+                st.error(str(exc))
+        records = st.session_state.get("cloud_campaign_records", [])
+        if records:
+            labels = {f"{r.get('name','Untitled')} · {str(r.get('updated_at',''))[:10]}":r for r in records}
+            selected_label = st.selectbox("Your cloud campaigns", list(labels))
+            a1, a2 = st.columns(2)
+            if a1.button("Open selected cloud campaign"):
+                cloud_open_campaign(labels[selected_label])
+            if a2.button("Delete selected cloud campaign"):
+                try:
+                    rec = labels[selected_label]
+                    supabase_request("DELETE", "/rest/v1/campaigns", token=cloud_token(),
+                        params={"id":f"eq.{rec['id']}", "user_id":f"eq.{cloud_user()['id']}"})
+                    st.session_state.cloud_campaign_records = [r for r in records if r.get("id") != rec.get("id")]
+                    st.success("Cloud campaign deleted.")
+                    st.rerun()
+                except Exception as exc:
+                    st.error(str(exc))
+        else:
+            st.info("No campaigns saved in the cloud yet.")
+    else:
+        st.warning("Cloud storage is not connected. Open Cloud Account, add the two Supabase settings, then create an account or sign in.")
     left, right = st.columns(2)
     with left:
         st.subheader("Save current campaign")
@@ -450,6 +551,67 @@ elif page == "Backer Communications":
     facts = st.text_area("Verified facts, what happened, what backers need to know, and next update date", height=150)
     if st.button("Draft backer message", type="primary"):
         ask_ai(f"Draft a {kind} message to backers. Be transparent, specific, respectful, and clear about what is known, unknown, and happening next. Never conceal a material delay or invent progress.", facts)
+
+
+elif page == "Cloud Account":
+    page_header("Cloud Account", "Sign in to securely save campaigns to your private Supabase database.")
+    base_url, public_key = supabase_config()
+    if not base_url or not public_key:
+        st.warning("Supabase connection details are not configured in Streamlit Secrets yet.")
+        st.code('SUPABASE_URL = "https://YOUR-PROJECT.supabase.co"\nSUPABASE_PUBLISHABLE_KEY = "sb_publishable_..."', language="toml")
+        st.markdown("In Streamlit, open your app → **Manage app** → **Settings** → **Secrets**. Add the two values above, replacing the examples. Use your project URL and publishable key only. Never add the secret key.")
+    else:
+        st.success("Supabase project settings detected.")
+        signed_user = cloud_user()
+        if signed_user and cloud_token():
+            st.success("Signed in as " + signed_user.get("email", "your account"))
+            if st.button("Sign out of cloud account"):
+                for k in ("supabase_user","supabase_access_token","supabase_refresh_token"):
+                    st.session_state.pop(k, None)
+                st.rerun()
+        else:
+            tab_login, tab_signup = st.tabs(["Sign in", "Create account"])
+            with tab_login:
+                with st.form("supabase_login_form"):
+                    email = st.text_input("Email address", key="sb_login_email")
+                    password = st.text_input("Password", type="password", key="sb_login_password")
+                    login = st.form_submit_button("Sign in", type="primary")
+                if login:
+                    try:
+                        result = supabase_request("POST", "/auth/v1/token", params={"grant_type":"password"},
+                            payload={"email":email.strip(),"password":password})
+                        if result.get("access_token") and result.get("user"):
+                            st.session_state.supabase_access_token = result["access_token"]
+                            st.session_state.supabase_refresh_token = result.get("refresh_token","")
+                            st.session_state.supabase_user = result["user"]
+                            st.success("Signed in successfully.")
+                            st.rerun()
+                        st.error("Sign-in did not return a session. Check your details and email verification.")
+                    except Exception as exc:
+                        st.error(str(exc))
+            with tab_signup:
+                with st.form("supabase_signup_form"):
+                    new_email = st.text_input("Email address", key="sb_signup_email")
+                    new_password = st.text_input("Create password (at least 8 characters)", type="password", key="sb_signup_password")
+                    signup = st.form_submit_button("Create account")
+                if signup:
+                    if len(new_password) < 8:
+                        st.error("Choose a password with at least 8 characters.")
+                    else:
+                        try:
+                            result = supabase_request("POST", "/auth/v1/signup",
+                                payload={"email":new_email.strip(),"password":new_password})
+                            if result.get("access_token") and result.get("user"):
+                                st.session_state.supabase_access_token = result["access_token"]
+                                st.session_state.supabase_user = result["user"]
+                                st.session_state.supabase_refresh_token = result.get("refresh_token","")
+                                st.success("Account created and signed in.")
+                                st.rerun()
+                            else:
+                                st.success("Account request received. Check your email to confirm the account, then return here and sign in.")
+                        except Exception as exc:
+                            st.error(str(exc))
+    st.caption("Your password is sent directly to Supabase Auth over HTTPS. The app uses your signed-in access token and the publishable key; it does not need your Supabase secret key.")
 
 elif page == "Settings":
     page_header("Settings", "Connect the AI engine and review how this workspace handles information.")
