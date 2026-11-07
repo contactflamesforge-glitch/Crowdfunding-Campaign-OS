@@ -71,6 +71,11 @@ def handle_jarvis_event(event):
             (["launch manager", "launch plan", "launch schedule"], "Launch Manager"),
             (["performance analyst", "campaign performance", "analyze performance"], "Performance Analyst"),
             (["backer communication", "backer update"], "Backer Communications"),
+            (["campaign library", "switch campaign", "save campaign"], "Campaign Library"),
+            (["command centre", "command center", "metrics dashboard"], "Command Centre"),
+            (["autopilot", "mission planner"], "Autopilot"),
+            (["backer discovery", "find backers"], "Backer Discovery"),
+            (["creative studio", "create visuals"], "Creative Studio"),
             (["settings"], "Settings")
         ]
         for phrases, page_name in routes:
@@ -127,6 +132,8 @@ elif nav_action == "select":
 elif nav_action == "back":
     st.session_state["jarvis_page_index"] = PAGES.index("Overview")
     st.session_state["workspace_page"] = "Overview"
+if nav_action in ("up", "down"):
+    st.session_state["workspace_page"] = PAGES[st.session_state["jarvis_page_index"]]
 if st.session_state.get("workspace_page") in PAGES and not nav_action:
     st.session_state["jarvis_page_index"] = PAGES.index(st.session_state["workspace_page"])
 page = st.sidebar.radio("Workspace", PAGES, key="workspace_page", index=st.session_state["jarvis_page_index"])
@@ -186,7 +193,7 @@ Return a well-structured, specific, practical answer. Mark unverified claims cle
             url + "?key=" + key,
             headers={"Content-Type": "application/json"},
             json={"contents":[{"parts":[{"text":prompt}]}],
-                  "tools":[{"google_search":{}}] if web_search else None,
+                  "tools":[{"google_search":{}}] if web_search else [],
                   "generationConfig":{"temperature":temperature, "maxOutputTokens":6000}},
             timeout=90
         )
@@ -381,8 +388,8 @@ elif page == "Market & Audience":
     page_header("Market & Audience Intelligence", "Build a useful research plan and understand potential backers.")
     st.info("This version does not browse the live web. It will not pretend to have verified competitors or market statistics. Paste research, links' contents, or interview notes for evidence-based analysis.")
     research = st.text_area("Paste research, competitor notes, customer interviews, survey results, or source excerpts", height=180)
-    if st.button("Analyze market and audience", type="primary"):
-        ask_ai("Analyze the supplied research. Identify backer segments, motivations, objections, alternatives, competitor positioning where evidence exists, unanswered questions, and a practical validation plan. Distinguish evidence from hypotheses.", research)
+    if st.button("Research market and audience", type="primary"):
+        ask_ai("Research the campaign category and audience using Google Search grounding. Find relevant competitors, alternatives, audience communities, current category context and potential partners. Cite source URLs in the response. Separate verified findings from hypotheses, note dates and geography, and do not infer market size without reliable evidence.", research, web_search=True)
 
 elif page == "Campaign Story":
     page_header("Campaign Story Builder", "Create a clear, credible story that helps the right people understand the campaign.")
