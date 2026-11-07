@@ -25,10 +25,10 @@ AI-powered workspace for crowdfunding campaign strategy, creation, marketing, la
 
 Open the app in a modern browser (Chrome is recommended). In the left sidebar:
 
-1. Tap **Voice control**, allow microphone access, and speak a command such as "open Campaign Analyzer" or "open Marketing Studio".
-2. Tap **Hand gestures**, allow camera access, and show one hand clearly.
-3. Gesture shortcuts: open palm = Overview; victory sign = Marketing Studio; pointing up = Launch Manager; thumbs up = Campaign Analyzer; closed fist = stop spoken audio.
-4. Tap **Stop** to stop microphone recognition, camera capture, and speech output.
+1. Tap **VOICE**, allow microphone access, and speak a command such as "open Campaign Analyzer", "open Autopilot" or "open Creative Studio".
+2. Tap **HAND TRACK**, allow camera access, and show one hand clearly in good lighting.
+3. Gesture shortcuts: thumb/point up = move selection up; thumb down = move down; victory sign = select; closed fist = return to Overview; love-you sign = return to Overview.
+4. Tap **STOP** to stop microphone recognition, camera capture and speech output.
 
 Voice recognition and camera gesture support depend on browser/device support and permissions. On some mobile browsers, speech recognition or camera processing may be unavailable or slower. The camera is processed in the browser; the app sends recognized gesture labels, not a video recording, to the Streamlit app.
 
