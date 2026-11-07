@@ -2,6 +2,10 @@ import os
 import json
 import requests
 import streamlit as st
+import streamlit.components.v1 as components
+from pathlib import Path
+
+jarvis_controls = components.declare_component("jarvis_controls", path=str(Path(__file__).parent / "jarvis_component"))
 
 st.set_page_config(page_title="Crowdfunding Campaign OS", page_icon="🚀", layout="wide")
 
@@ -23,14 +27,62 @@ if "campaign" not in st.session_state:
         "proof": "", "risks": "", "notes": ""
     }
 
-C = st.session_state.campaign
-st.sidebar.title("🚀 Campaign OS")
-page = st.sidebar.radio("Workspace", [
+PAGES = [
     "Overview", "Campaign Brief", "Campaign Analyzer", "Market & Audience",
     "Campaign Story", "Reward Strategy", "Pre-Launch Planner",
     "Marketing Studio", "Launch Manager", "Performance Analyst",
     "Backer Communications", "Settings"
-])
+]
+
+def handle_jarvis_event(event):
+    if not isinstance(event, dict):
+        return
+    target = None
+    if event.get("type") == "voice":
+        spoken = str(event.get("text", "")).strip().lower()
+        routes = [
+            (["overview", "home", "dashboard"], "Overview"),
+            (["campaign brief", "project brief"], "Campaign Brief"),
+            (["analyze my campaign", "campaign analyzer", "check my campaign"], "Campaign Analyzer"),
+            (["market research", "audience research", "market and audience"], "Market & Audience"),
+            (["campaign story", "write my story"], "Campaign Story"),
+            (["reward strategy", "reward tiers"], "Reward Strategy"),
+            (["pre-launch", "prelaunch"], "Pre-Launch Planner"),
+            (["marketing studio", "create marketing", "marketing content"], "Marketing Studio"),
+            (["launch manager", "launch plan", "launch schedule"], "Launch Manager"),
+            (["performance analyst", "campaign performance", "analyze performance"], "Performance Analyst"),
+            (["backer communication", "backer update"], "Backer Communications"),
+            (["settings"], "Settings")
+        ]
+        for phrases, page_name in routes:
+            if any(phrase in spoken for phrase in phrases):
+                target = page_name
+                break
+        if target is None:
+            st.session_state["jarvis_reply"] = "I heard you. Try saying open Campaign Analyzer, open Marketing Studio, or open Launch Manager."
+            return
+    elif event.get("type") == "gesture":
+        gestures = {
+            "Open_Palm": "Overview",
+            "Victory": "Marketing Studio",
+            "Pointing_Up": "Launch Manager",
+            "Thumb_Up": "Campaign Analyzer"
+        }
+        target = gestures.get(event.get("gesture"))
+        if event.get("gesture") == "Closed_Fist":
+            st.session_state["jarvis_reply"] = "Okay. I have stopped speaking."
+            return
+    if target:
+        st.session_state["workspace_page"] = target
+        st.session_state["jarvis_reply"] = f"Opening {target}."
+
+C = st.session_state.campaign
+st.sidebar.title("🚀 Campaign OS")
+st.sidebar.subheader("J.A.R.V.I.S. Voice & Gesture Control")
+jarvis_event = jarvis_controls(reply=st.session_state.get("jarvis_reply", ""), key="jarvis_control", default=None)
+if jarvis_event:
+    handle_jarvis_event(jarvis_event)
+page = st.sidebar.radio("Workspace", PAGES, key="workspace_page")
 st.sidebar.caption("Plan carefully. Create honestly. Launch with evidence.")
 
 def api_key():
