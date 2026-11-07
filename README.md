@@ -13,6 +13,18 @@ AI-powered workspace for crowdfunding campaign strategy, creation, marketing, la
 - Email, social, outreach, and promotional content
 - Launch runbook and campaign performance analysis
 - Transparent backer updates and responses
+- **J.A.R.V.I.S. voice and hand-gesture controls:** browser speech recognition, spoken responses, and camera-based gesture shortcuts for workspace navigation
+
+## J.A.R.V.I.S. controls
+
+Open the app in a modern browser (Chrome is recommended). In the left sidebar:
+
+1. Tap **Voice control**, allow microphone access, and speak a command such as "open Campaign Analyzer" or "open Marketing Studio".
+2. Tap **Hand gestures**, allow camera access, and show one hand clearly.
+3. Gesture shortcuts: open palm = Overview; victory sign = Marketing Studio; pointing up = Launch Manager; thumbs up = Campaign Analyzer; closed fist = stop spoken audio.
+4. Tap **Stop** to stop microphone recognition, camera capture, and speech output.
+
+Voice recognition and camera gesture support depend on browser/device support and permissions. On some mobile browsers, speech recognition or camera processing may be unavailable or slower. The camera is processed in the browser; the app sends recognized gesture labels, not a video recording, to the Streamlit app.
 
 ## Run locally
 
@@ -40,6 +52,7 @@ Never commit API keys or other secrets to this repository.
 
 ## Important limitations
 
+- This is a J.A.R.V.I.S.-inspired interface, not the fictional Iron Man AI.
 - The first version does not browse the live web or independently verify market research.
 - Market and competitor analysis is based on evidence and source material supplied by the user.
 - Campaign brief information is held in the current app session; this initial version does not provide a permanent campaign database or user accounts.
@@ -51,3 +64,5 @@ Never commit API keys or other secrets to this repository.
 - Python
 - Streamlit
 - Google Gemini API
+- Browser Web Speech API
+- MediaPipe Gesture Recognizer
