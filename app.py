@@ -107,7 +107,8 @@ def handle_jarvis_event(event):
 
 C = st.session_state.campaign
 st.sidebar.title("🚀 Campaign OS")
-st.sidebar.subheader("J.A.R.V.I.S. Voice & Gesture Control")
+# J.A.R.V.I.S. sits in the main workspace so the camera preview can use the full screen width.
+st.subheader("J.A.R.V.I.S.  //  Voice & Gesture Command Deck")
 jarvis_event = jarvis_controls(reply=st.session_state.get("jarvis_reply", ""), key="jarvis_control", default=None)
 if jarvis_event and jarvis_event.get("at") != st.session_state.get("jarvis_last_event_at"):
     st.session_state["jarvis_last_event_at"] = jarvis_event.get("at")
