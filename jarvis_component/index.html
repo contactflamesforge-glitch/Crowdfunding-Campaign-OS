@@ -1,21 +1,52 @@
 <!doctype html>
 <html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <style>
-body{margin:0;font-family:Arial,sans-serif;background:transparent;color:#eaf2ff}.panel{background:linear-gradient(135deg,#101d35,#173b5c);border:1px solid #315b7d;border-radius:14px;padding:12px}.brand{display:flex;align-items:center;gap:9px;font-weight:700;letter-spacing:1px}.dot{width:10px;height:10px;border-radius:50%;background:#4de2dc;box-shadow:0 0 12px #4de2dc}.status{font-size:12px;color:#b9cee2;margin:7px 0}.controls{display:flex;gap:7px;flex-wrap:wrap}button{border:1px solid #50799b;border-radius:9px;padding:8px 10px;background:#214b6e;color:white;font-weight:600;font-size:12px}button.primary{background:#087e8b;border-color:#26c6c9}video{width:100%;max-height:150px;object-fit:cover;border-radius:9px;margin-top:8px;background:#07111e;display:none}.hint{font-size:11px;color:#b9cee2;line-height:1.4;margin-top:8px}
+*{box-sizing:border-box}body{margin:0;font-family:Arial,sans-serif;background:transparent;color:#eaf7ff}
+.panel{width:100%;min-height:390px;padding:15px;border:1px solid rgba(54,232,255,.6);border-radius:18px;background:radial-gradient(ellipse at 10% 0%,rgba(30,145,190,.22),transparent 48%),linear-gradient(145deg,#07182b,#11102b 75%,#081522);box-shadow:0 0 22px rgba(39,218,255,.17),inset 0 0 25px rgba(128,91,255,.1);position:relative;overflow:hidden}
+.panel:before{content:"";position:absolute;inset:0;background:repeating-linear-gradient(0deg,transparent 0 5px,rgba(83,226,255,.025) 6px);pointer-events:none}
+.brand{display:flex;align-items:center;gap:9px;font-weight:800;letter-spacing:2px;font-size:17px;font-family:Arial,sans-serif;color:#eaffff;text-shadow:0 0 12px #2cecff}
+.dot{width:11px;height:11px;border-radius:50%;background:#50ffe0;box-shadow:0 0 15px #50ffe0;animation:beat 1.5s infinite}
+.tag{margin-left:auto;font-size:9px;letter-spacing:1.5px;color:#91b9d8}
+.status{font-size:12px;color:#bcecff;margin:10px 0 12px;min-height:17px}
+.controls{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
+button{border:1px solid #367b9c;border-radius:10px;padding:10px 7px;background:linear-gradient(120deg,#123a59,#29204f);color:white;font-weight:700;font-size:12px;cursor:pointer;transition:.2s;box-shadow:inset 0 0 10px rgba(65,214,255,.08)}
+button:hover{border-color:#6cf5ff;box-shadow:0 0 14px rgba(53,232,255,.3);transform:translateY(-1px)}
+button.primary{background:linear-gradient(110deg,#087b8d,#44318a);border-color:#57eaff}
+.camera-wrap{margin-top:12px;border:1px solid rgba(68,224,255,.4);border-radius:13px;padding:7px;background:rgba(3,10,23,.72)}
+.camera-head{display:flex;justify-content:space-between;font-size:10px;letter-spacing:1px;color:#9ddfff;margin:0 0 6px}
+video{width:100%;height:270px;object-fit:cover;transform:scaleX(-1);border-radius:9px;background:#020812;display:none}
+.camera-placeholder{height:72px;display:grid;place-items:center;color:#769bb7;font-size:11px;letter-spacing:.5px}
+.hint{font-size:11px;color:#a9c7df;line-height:1.55;margin-top:10px}
+.key{display:inline-block;padding:2px 6px;border:1px solid #39708d;border-radius:5px;color:#8ef5ff;margin:1px}
+@keyframes beat{50%{opacity:.45;box-shadow:0 0 4px #50ffe0}}
+@media(max-width:420px){.panel{padding:11px}.controls{gap:5px}button{font-size:11px;padding:9px 3px}video{height:230px}}
 </style></head><body>
-<div class="panel"><div class="brand"><span class="dot"></span> J.A.R.V.I.S. <span style="font-size:10px;color:#a9c5df">CAMPAIGN ASSISTANT</span></div>
-<div id="status" class="status">Standing by. Start voice or camera control.</div>
-<div class="controls"><button class="primary" id="voice">🎙️ Voice control</button><button id="camera">✋ Hand gestures</button><button id="stop">■ Stop</button></div>
-<video id="video" autoplay playsinline muted></video>
-<div class="hint">Say “open Campaign Analyzer”, “open Marketing Studio”, or “analyze my campaign”. Gestures: open palm = Overview; victory sign = Marketing Studio; pointing up = Launch Manager; thumbs up = Campaign Analyzer; fist = stop speaking.</div></div>
+<div class="panel">
+ <div class="brand"><span class="dot"></span> J.A.R.V.I.S. <span class="tag">CAMPAIGN COMMAND // ONLINE</span></div>
+ <div id="status" class="status">Systems ready. Activate voice or hand tracking.</div>
+ <div class="controls">
+  <button class="primary" id="voice">🎙 VOICE</button><button id="camera">✋ HAND TRACK</button><button id="stop">■ STOP</button>
+ </div>
+ <div class="camera-wrap"><div class="camera-head"><span>LIVE OPTICAL SENSOR</span><span id="camstate">CAMERA OFFLINE</span></div>
+  <div id="placeholder" class="camera-placeholder">Camera preview appears here when hand tracking starts</div>
+  <video id="video" autoplay playsinline muted></video>
+ </div>
+ <div class="hint"><b>GESTURE COMMANDS</b><br>
+ <span class="key">☝ Thumb / point up</span> Scroll workspace up &nbsp; <span class="key">👇 Thumb down</span> Scroll down<br>
+ <span class="key">✌ Victory</span> Select / Enter &nbsp; <span class="key">✊ Fist</span> Back to Overview<br>
+ <span class="key">🤟 Love-you</span> Exit to Overview<br>
+ <b>VOICE:</b> “Open Campaign Analyzer”, “Open Marketing Studio”, “Open Launch Manager”.</div>
+</div>
 <script type="module">
-const statusEl=document.getElementById("status"),video=document.getElementById("video");let recognition=null,stream=null,recognizer=null,lastGesture="",lastGestureAt=0,lastReply="";
+const statusEl=document.getElementById("status"),video=document.getElementById("video"),placeholder=document.getElementById("placeholder"),camstate=document.getElementById("camstate");
+let recognition=null,stream=null,recognizer=null,lastGesture="",lastGestureAt=0,lastReply="",running=false;
 function send(value){parent.postMessage({isStreamlitMessage:true,type:"streamlit:setComponentValue",value:{...value,at:Date.now()}},"*")}
 function speak(text){if(!text||!window.speechSynthesis)return;window.speechSynthesis.cancel();const u=new SpeechSynthesisUtterance(text);u.rate=1;u.pitch=1;window.speechSynthesis.speak(u)}
-document.getElementById("voice").onclick=()=>{const SR=window.SpeechRecognition||window.webkitSpeechRecognition;if(!SR){statusEl.textContent="Voice recognition is not supported here. Try Chrome.";return}if(recognition){recognition.stop();recognition=null}recognition=new SR();recognition.lang="en-NG";recognition.interimResults=false;recognition.continuous=false;recognition.onstart=()=>statusEl.textContent="Listening. Speak a command…";recognition.onresult=e=>{const phrase=e.results[0][0].transcript;statusEl.textContent="Heard: "+phrase;send({type:"voice",text:phrase})};recognition.onerror=e=>statusEl.textContent="Voice issue: "+e.error+". Try again.";recognition.onend=()=>{if(recognition)statusEl.textContent="Voice control ready. Tap Voice control to speak again."};recognition.start()};
-document.getElementById("stop").onclick=()=>{if(recognition){recognition.stop();recognition=null}if(stream){stream.getTracks().forEach(t=>t.stop());stream=null}video.srcObject=null;video.style.display="none";window.speechSynthesis?.cancel();statusEl.textContent="Voice and camera stopped."};
-async function startHands(){try{statusEl.textContent="Loading hand gesture recognition…";const vision=await import("https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.14/+esm");const files=await vision.FilesetResolver.forVisionTasks("https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.14/wasm");recognizer=await vision.GestureRecognizer.createFromOptions(files,{baseOptions:{modelAssetPath:"https://storage.googleapis.com/mediapipe-models/gesture_recognizer/gesture_recognizer/float16/1/gesture_recognizer.task",delegate:"GPU"},runningMode:"VIDEO",numHands:1});stream=await navigator.mediaDevices.getUserMedia({video:{facingMode:"user",width:640,height:480},audio:false});video.srcObject=stream;video.style.display="block";await video.play();statusEl.textContent="Camera active. Show one hand clearly.";const loop=()=>{if(!stream||!recognizer)return;if(video.readyState>=2){const result=recognizer.recognizeForVideo(video,performance.now());const g=result.gestures?.[0]?.[0]?.categoryName||"";if(g&&g!=="None"&&g!==lastGesture){lastGesture=g;statusEl.textContent="Gesture detected: "+g;send({type:"gesture",gesture:g})}else if(!g||g==="None"){lastGesture=""}}requestAnimationFrame(loop)};requestAnimationFrame(loop)}catch(e){statusEl.textContent="Camera setup failed. Allow camera access and try Chrome. "+e.message}}
+document.getElementById("voice").onclick=()=>{const SR=window.SpeechRecognition||window.webkitSpeechRecognition;if(!SR){statusEl.textContent="Voice recognition is not supported here. Try Chrome.";return}if(recognition){recognition.stop();recognition=null}recognition=new SR();recognition.lang="en-NG";recognition.interimResults=false;recognition.continuous=false;recognition.onstart=()=>statusEl.textContent="Listening. Speak a command…";recognition.onresult=e=>{const phrase=e.results[0][0].transcript;statusEl.textContent="Heard: "+phrase;send({type:"voice",text:phrase})};recognition.onerror=e=>statusEl.textContent="Voice issue: "+e.error+". Try again.";recognition.onend=()=>{if(recognition)statusEl.textContent="Voice ready. Tap Voice to speak again."};recognition.start()};
+document.getElementById("stop").onclick=()=>stopAll();
+function stopAll(){running=false;if(recognition){recognition.stop();recognition=null}if(stream){stream.getTracks().forEach(t=>t.stop());stream=null}video.srcObject=null;video.style.display="none";placeholder.style.display="grid";camstate.textContent="CAMERA OFFLINE";window.speechSynthesis?.cancel();statusEl.textContent="Voice and camera stopped."}
+async function startHands(){try{if(!navigator.mediaDevices?.getUserMedia){statusEl.textContent="Camera needs a secure browser connection. Open the deployed HTTPS app in Chrome.";return}statusEl.textContent="Loading gesture engine…";const vision=await import("https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.14/+esm");const files=await vision.FilesetResolver.forVisionTasks("https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.14/wasm");recognizer=await vision.GestureRecognizer.createFromOptions(files,{baseOptions:{modelAssetPath:"https://storage.googleapis.com/mediapipe-models/gesture_recognizer/gesture_recognizer/float16/1/gesture_recognizer.task",delegate:"GPU"},runningMode:"VIDEO",numHands:1});stream=await navigator.mediaDevices.getUserMedia({video:{facingMode:"user",width:{ideal:1280},height:{ideal:720}},audio:false});video.srcObject=stream;video.style.display="block";placeholder.style.display="none";camstate.textContent="CAMERA ONLINE";await video.play();running=true;statusEl.textContent="Camera active. Keep your hand well lit and inside the frame.";const loop=()=>{if(!running||!stream||!recognizer)return;if(video.readyState>=2){const result=recognizer.recognizeForVideo(video,performance.now());const g=result.gestures?.[0]?.[0]?.categoryName||"";const now=Date.now();if(g&&g!=="None"&&g!==lastGesture&&now-lastGestureAt>850){lastGesture=g;lastGestureAt=now;statusEl.textContent="Gesture detected: "+g;send({type:"gesture",gesture:g})}else if(!g||g==="None"){lastGesture=""}}requestAnimationFrame(loop)};requestAnimationFrame(loop)}catch(e){statusEl.textContent="Camera setup failed. Allow camera access, improve lighting, and retry. "+e.message;camstate.textContent="CAMERA ERROR"}}
 document.getElementById("camera").onclick=startHands;
 window.addEventListener("message",e=>{const d=e.data;if(d?.type==="streamlit:render"){const args=d.args||{};if(args.reply&&args.reply!==lastReply){lastReply=args.reply;speak(args.reply)}}});
-parent.postMessage({isStreamlitMessage:true,type:"streamlit:componentReady",apiVersion:1},"*");parent.postMessage({isStreamlitMessage:true,type:"streamlit:setFrameHeight",height:250},"*");
+parent.postMessage({isStreamlitMessage:true,type:"streamlit:componentReady",apiVersion:1},"*");parent.postMessage({isStreamlitMessage:true,type:"streamlit:setFrameHeight",height:455},"*");
 </script></body></html>
