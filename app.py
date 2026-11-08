@@ -532,8 +532,7 @@ elif page == "Creative Studio":
     if st.button("Generate creative brief", type="primary"):
         ask_ai(f"Create a production-ready creative brief for {asset} on {channel}. Include composition, copy hierarchy, visual direction, accessibility, variants to test and image-generation prompts. Do not show unverified product features, endorsements or results.", notes)
 
-el
-if page == "Holographic Command Deck":
+elif page == "Holographic Command Deck":
     page_header("J.A.R.V.I.S. // HOLOGRAPHIC COMMAND DECK", "Conversational AI and a hologram-inspired interactive command environment.")
     st.markdown("""
     <style>
