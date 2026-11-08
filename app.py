@@ -615,10 +615,8 @@ elif page == "Holographic Command Deck":
         with st.spinner("J.A.R.V.I.S. is thinking..."):
             answer = jarvis_chat_response(pending)
         st.session_state.jarvis_chat_history.append({"role":"assistant","content":answer})
-        st.session_state["jarvis_reply"] = answer[:220]
-    for message in st.session_state.jarvis_chat_history[-20:]:
-        with st.chat_message(message["role"]):
-            st.markdown(message["content"])
+        st.session_state["jarvis_reply"] = answer
+    st.info("J.A.R.V.I.S. voice mode is active. Responses are spoken aloud; the text transcript is hidden.")
     prompt = st.chat_input("Talk naturally to J.A.R.V.I.S. ...")
     if prompt:
         st.session_state.jarvis_chat_history.append({"role":"user","content":prompt})
