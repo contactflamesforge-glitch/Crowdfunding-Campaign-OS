@@ -292,7 +292,7 @@ def jarvis_chat_response(user_text):
     if not key:
         return "I can chat once the Gemini API key is configured. Open Settings and add your key; please never share it in chat."
     history = st.session_state.setdefault("jarvis_chat_history", [])
-    recent = history[-12:]
+    recent = history[:-1][-12:]
     conversation = []
     for item in recent:
         role = "user" if item.get("role") == "user" else "model"
