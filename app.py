@@ -53,6 +53,20 @@ PAGES = [
     "Backer Communications", "Campaign Library", "Command Centre", "Autopilot", "Backer Discovery", "Creative Studio", "Holographic Command Deck", "Cloud Account", "Settings"
 ]
 
+
+HOLO_PANELS = [
+    ("Campaign Analyzer", "Assess campaign readiness and risks"),
+    ("Market & Audience", "Explore audience and market fit"),
+    ("Campaign Story", "Build the campaign narrative"),
+    ("Reward Strategy", "Design practical reward tiers"),
+    ("Marketing Studio", "Create campaign marketing assets"),
+    ("Launch Manager", "Organize launch execution"),
+    ("Performance Analyst", "Review campaign performance"),
+    ("Backer Discovery", "Research potential backers"),
+    ("Creative Studio", "Prepare creative concepts"),
+    ("Command Centre", "View campaign operations")
+]
+
 def handle_jarvis_event(event):
     if not isinstance(event, dict):
         return
@@ -90,6 +104,29 @@ def handle_jarvis_event(event):
             return
     elif event.get("type") == "gesture":
         gesture = event.get("gesture")
+        if st.session_state.get("workspace_page") == "Holographic Command Deck":
+            if "holo_panel_index" not in st.session_state:
+                st.session_state["holo_panel_index"] = 0
+            idx = st.session_state["holo_panel_index"] % len(HOLO_PANELS)
+            if gesture in ("Thumb_Up", "Pointing_Up"):
+                idx = (idx - 1) % len(HOLO_PANELS)
+                st.session_state["holo_panel_index"] = idx
+                st.session_state["jarvis_reply"] = "Highlighted " + HOLO_PANELS[idx][0] + ". Make a victory sign to open it."
+                return
+            if gesture in ("Thumb_Down", "Pointing_Down"):
+                idx = (idx + 1) % len(HOLO_PANELS)
+                st.session_state["holo_panel_index"] = idx
+                st.session_state["jarvis_reply"] = "Highlighted " + HOLO_PANELS[idx][0] + ". Make a victory sign to open it."
+                return
+            if gesture == "Victory":
+                target = HOLO_PANELS[idx][0]
+                st.session_state["workspace_page"] = target
+                st.session_state["jarvis_reply"] = "Opening " + target + "."
+                return
+            if gesture == "Closed_Fist":
+                st.session_state["workspace_page"] = "Overview"
+                st.session_state["jarvis_reply"] = "Returning to Overview."
+                return
         if gesture == "Closed_Fist":
             st.session_state["jarvis_reply"] = "Back. Returning to the previous workspace."
             st.session_state["jarvis_nav_action"] = "back"
@@ -520,6 +557,40 @@ if page == "Holographic Command Deck":
     </div>
     """, unsafe_allow_html=True)
     st.caption("The hologram is a screen-based visual interface. Hand tracking uses your camera when you activate it in the J.A.R.V.I.S. control panel above.")
+
+    st.subheader("Interactive holographic panels")
+    if "holo_panel_index" not in st.session_state:
+        st.session_state["holo_panel_index"] = 0
+    selected_index = st.session_state["holo_panel_index"] % len(HOLO_PANELS)
+    st.markdown("Point/thumb up = previous panel, thumb down = next panel, victory = open highlighted panel, fist = return to Overview. Buttons also work without the camera.")
+    nav_a, nav_b, nav_c = st.columns([1, 2, 1])
+    if nav_a.button("← Previous", use_container_width=True):
+        st.session_state["holo_panel_index"] = (selected_index - 1) % len(HOLO_PANELS)
+        st.rerun()
+    with nav_b:
+        panel_name, panel_description = HOLO_PANELS[selected_index]
+        st.markdown(
+            f'<div style="text-align:center;padding:12px;border:1px solid #35e8ff;border-radius:14px;background:linear-gradient(120deg,rgba(7,75,100,.55),rgba(57,36,105,.55));box-shadow:0 0 18px rgba(53,232,255,.22)"><div style="font-size:10px;letter-spacing:2px;color:#8eeeff">FOCUSED HOLOGRAM</div><div style="font-family:Orbitron,Arial;color:#eafaff;font-size:18px;margin:7px 0">{panel_name}</div><div style="color:#b8d8ec;font-size:13px">{panel_description}</div><div style="font-size:10px;color:#8eeeff;margin-top:7px">PANEL {selected_index + 1} / {len(HOLO_PANELS)}</div></div>',
+            unsafe_allow_html=True
+        )
+    if nav_c.button("Next →", use_container_width=True):
+        st.session_state["holo_panel_index"] = (selected_index + 1) % len(HOLO_PANELS)
+        st.rerun()
+    if st.button("✦ Open highlighted panel", type="primary", use_container_width=True):
+        st.session_state["workspace_page"] = panel_name
+        st.session_state["jarvis_reply"] = "Opening " + panel_name + "."
+        st.rerun()
+
+    st.markdown("#### Direct panel access")
+    panel_columns = st.columns(2)
+    for panel_number, (panel_title, panel_desc) in enumerate(HOLO_PANELS):
+        with panel_columns[panel_number % 2]:
+            if st.button("◈ " + panel_title, key="holo_open_" + str(panel_number), help=panel_desc, use_container_width=True):
+                st.session_state["holo_panel_index"] = panel_number
+                st.session_state["workspace_page"] = panel_title
+                st.session_state["jarvis_reply"] = "Opening " + panel_title + "."
+                st.rerun()
+
     if "jarvis_chat_history" not in st.session_state:
         st.session_state.jarvis_chat_history = []
     pending = st.session_state.pop("jarvis_chat_pending", "")
