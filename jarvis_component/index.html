@@ -4,6 +4,7 @@
 *{box-sizing:border-box}body{margin:0;font-family:Arial,sans-serif;background:transparent;color:#eaf7ff}
 .panel{width:100%;min-height:390px;padding:15px;border:1px solid rgba(54,232,255,.6);border-radius:18px;background:radial-gradient(ellipse at 10% 0%,rgba(30,145,190,.22),transparent 48%),linear-gradient(145deg,#07182b,#11102b 75%,#081522);box-shadow:0 0 22px rgba(39,218,255,.17),inset 0 0 25px rgba(128,91,255,.1);position:relative;overflow:hidden}
 .panel:before{content:"";position:absolute;inset:0;background:repeating-linear-gradient(0deg,transparent 0 5px,rgba(83,226,255,.025) 6px);pointer-events:none}
+.reactor-wrap{display:flex;justify-content:center;align-items:center;height:112px;margin:8px 0 4px;perspective:500px}.reactor{width:82px;height:82px;border:2px solid #69f2ff;border-radius:50%;display:grid;place-items:center;position:relative;color:#c8fbff;font-size:10px;font-weight:800;letter-spacing:2px;text-shadow:0 0 10px #36eaff;box-shadow:0 0 24px rgba(53,232,255,.45),inset 0 0 20px rgba(53,232,255,.2);animation:reactorPulse 2.8s ease-in-out infinite}.reactor:before,.reactor:after{content:"";position:absolute;inset:-10px;border:1px solid rgba(83,237,255,.65);border-radius:50%;transform:rotateX(65deg);animation:reactorSpin 7s linear infinite}.reactor:after{inset:-18px;transform:rotateX(65deg) rotateZ(70deg);animation-direction:reverse}.holo-status{display:flex;justify-content:center;gap:7px;flex-wrap:wrap;margin:4px 0 12px}.holo-chip{border:1px solid rgba(66,220,255,.32);border-radius:20px;padding:5px 9px;color:#9feeff;font-size:9px;letter-spacing:1px;background:rgba(7,43,66,.45)}@keyframes reactorPulse{50%{transform:scale(1.04);box-shadow:0 0 36px rgba(53,232,255,.65),inset 0 0 26px rgba(53,232,255,.3)}}@keyframes reactorSpin{to{transform:rotateX(65deg) rotateZ(360deg)}}
 .brand{display:flex;align-items:center;gap:9px;font-weight:800;letter-spacing:2px;font-size:17px;font-family:Arial,sans-serif;color:#eaffff;text-shadow:0 0 12px #2cecff}
 .dot{width:11px;height:11px;border-radius:50%;background:#50ffe0;box-shadow:0 0 15px #50ffe0;animation:beat 1.5s infinite}
 .tag{margin-left:auto;font-size:9px;letter-spacing:1.5px;color:#91b9d8}
@@ -23,7 +24,9 @@ video{width:100%;height:270px;object-fit:cover;transform:scaleX(-1);border-radiu
 </style></head><body>
 <div class="panel">
  <div class="brand"><span class="dot"></span> J.A.R.V.I.S. <span class="tag">CAMPAIGN COMMAND // ONLINE</span></div>
- <div id="status" class="status">Systems ready. Activate voice or hand tracking.</div>
+ <div class="reactor-wrap"><div class="reactor">J.A.R.V.I.S.</div></div>
+ <div class="holo-status"><span class="holo-chip">AI CORE</span><span class="holo-chip">VOICE LINK</span><span class="holo-chip">OPTICAL SENSOR</span></div>
+ <div id="status" class="status">Systems ready. Ask me anything or activate hand tracking.</div>
  <div class="controls">
   <button class="primary" id="voice">🎙 VOICE</button><button id="camera">✋ HAND TRACK</button><button id="stop">■ STOP</button>
  </div>
@@ -35,7 +38,7 @@ video{width:100%;height:270px;object-fit:cover;transform:scaleX(-1);border-radiu
  <span class="key">☝ Thumb / point up</span> Scroll workspace up &nbsp; <span class="key">👇 Thumb down</span> Scroll down<br>
  <span class="key">✌ Victory</span> Select / Enter &nbsp; <span class="key">✊ Fist</span> Back to Overview<br>
  <span class="key">🤟 Love-you</span> Exit to Overview<br>
- <b>VOICE:</b> “Open Campaign Analyzer”, “Open Marketing Studio”, “Open Launch Manager”.</div>
+ <b>VOICE:</b> “Open Campaign Analyzer” to navigate, or ask a normal question to start a conversation in the Holographic Command Deck.</div>
 </div>
 <script type="module">
 const statusEl=document.getElementById("status"),video=document.getElementById("video"),placeholder=document.getElementById("placeholder"),camstate=document.getElementById("camstate");
