@@ -227,7 +227,7 @@ ADDITIONAL INSTRUCTIONS / MATERIAL:
 {extra}
 
 Return a well-structured, specific, practical answer. Mark unverified claims clearly."""
-    url = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent"
+    url = "https://generativelanguage.googleapis.com/v1beta/models/gemini-3.8-flash:generateContent"
     try:
         response = requests.post(
             url + "?key=" + key,
@@ -347,7 +347,7 @@ def jarvis_chat_response(user_text):
     )
     contents = [{"role": "user", "parts": [{"text": system_context + "\n\nUser says: " + user_text}]}]
     contents = conversation + contents
-    url = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent"
+    url = "https://generativelanguage.googleapis.com/v1beta/models/gemini-3.8-flash:generateContent"
     try:
         response = requests.post(
             url + "?key=" + key,
@@ -789,7 +789,7 @@ elif page == "Settings":
     st.text_input("Gemini API key", type="password", key="gemini_key", help="Paste your key here. It stays in this app session. For a permanent deployment setup, add GEMINI_API_KEY to your hosting secrets.")
     st.caption("Never paste API keys into campaign notes, GitHub files, or messages to other people.")
     st.subheader("Model")
-    st.code("gemini-2.5-flash")
+    st.code("gemini-3.8-flash")
     st.subheader("Data and reliability")
     st.markdown("- Campaign brief fields are stored in the current app session.\n- AI requests send the campaign brief and task to Google Gemini.\n- This first version does not independently verify market research or platform rules.\n- Review all outputs, prices, claims, legal requirements, and fulfilment plans before publishing.")
     if st.button("Test Gemini connection"):
