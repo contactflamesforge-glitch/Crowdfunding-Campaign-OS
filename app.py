@@ -347,24 +347,40 @@ def jarvis_chat_response(user_text):
     )
     contents = [{"role": "user", "parts": [{"text": system_context + "\n\nUser says: " + user_text}]}]
     contents = conversation + contents
-    url = "https://generativelanguage.googleapis.com/v1beta/models/gemini-3.8-flash:generateContent"
+    models = ["gemini-3.8-flash", "gemini-3.5-flash-lite"]
     try:
-        response = requests.post(
-            url + "?key=" + key,
-            headers={"Content-Type": "application/json"},
-            json={"contents": contents, "generationConfig": {"temperature": 0.7, "maxOutputTokens": 1800}},
-            timeout=60
-        )
-        if response.status_code != 200:
-            return f"I could not reach my conversational engine just now (Gemini error {response.status_code}). Please try again."
-        data = response.json()
-        parts = data.get("candidates", [{}])[0].get("content", {}).get("parts", [])
-        answer = "".join(part.get("text", "") for part in parts if "text" in part).strip()
-        return answer or "I am here, but I did not receive a complete answer. Could you ask me once more?"
+        last_status = None
+        last_detail = ""
+        for model in models:
+            url = f"https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent"
+            response = requests.post(
+                url + "?key=" + key,
+                headers={"Content-Type": "application/json"},
+                json={"contents": contents, "generationConfig": {"temperature": 0.7, "maxOutputTokens": 1800}},
+                timeout=60
+            )
+            if response.status_code == 200:
+                data = response.json()
+                parts = data.get("candidates", [{}])[0].get("content", {}).get("parts", [])
+                answer = "".join(part.get("text", "") for part in parts if "text" in part).strip()
+                if answer:
+                    return answer
+                last_status, last_detail = response.status_code, "The model returned an empty response."
+                continue
+            last_status = response.status_code
+            try:
+                error_data = response.json().get("error", {})
+                last_detail = error_data.get("message", response.text[:400])
+            except Exception:
+                last_detail = response.text[:400]
+            # Try the lightweight backup model for temporary service errors or model access issues.
+            if response.status_code not in (404, 429, 500, 502, 503, 504):
+                break
+        return f"J.A.R.V.I.S. could not get a response from Gemini (HTTP {last_status}). {last_detail[:350]}"
     except requests.exceptions.Timeout:
-        return "That took too long to process. Please try again with a shorter question."
-    except Exception:
-        return "I ran into a connection issue. Please check the app's internet connection and try again."
+        return "Gemini took too long to respond. Please try again shortly."
+    except Exception as exc:
+        return f"J.A.R.V.I.S. hit a connection error: {str(exc)[:250]}"
 
 
 def page_header(title, subtitle):
