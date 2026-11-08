@@ -347,7 +347,8 @@ def jarvis_chat_response(user_text):
     )
     contents = [{"role": "user", "parts": [{"text": system_context + "\n\nUser says: " + user_text}]}]
     contents = conversation + contents
-    models = ["gemini-3.8-flash", "gemini-3.5-flash-lite"]
+    # Try the faster Flash-Lite model first for snappier chat; use Flash as backup.
+    models = ["gemini-3.5-flash-lite", "gemini-3.8-flash"]
     try:
         last_status = None
         last_detail = ""
