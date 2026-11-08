@@ -50,7 +50,7 @@ PAGES = [
     "Overview", "Campaign Brief", "Campaign Analyzer", "Market & Audience",
     "Campaign Story", "Reward Strategy", "Pre-Launch Planner",
     "Marketing Studio", "Launch Manager", "Performance Analyst",
-    "Backer Communications", "Campaign Library", "Command Centre", "Autopilot", "Backer Discovery", "Creative Studio", "Cloud Account", "Settings"
+    "Backer Communications", "Campaign Library", "Command Centre", "Autopilot", "Backer Discovery", "Creative Studio", "Holographic Command Deck", "Cloud Account", "Settings"
 ]
 
 def handle_jarvis_event(event):
@@ -76,6 +76,7 @@ def handle_jarvis_event(event):
             (["autopilot", "mission planner"], "Autopilot"),
             (["backer discovery", "find backers"], "Backer Discovery"),
             (["creative studio", "create visuals"], "Creative Studio"),
+            (["holographic", "hologram", "command deck", "talk to jarvis", "jarvis chat"], "Holographic Command Deck"),
             (["settings"], "Settings")
         ]
         for phrases, page_name in routes:
@@ -83,7 +84,9 @@ def handle_jarvis_event(event):
                 target = page_name
                 break
         if target is None:
-            st.session_state["jarvis_reply"] = "I heard you. Try saying open Campaign Analyzer, open Marketing Studio, or open Launch Manager."
+            st.session_state["jarvis_chat_pending"] = str(event.get("text", "")).strip()
+            st.session_state["workspace_page"] = "Holographic Command Deck"
+            st.session_state["jarvis_reply"] = "Of course. Let us talk."
             return
     elif event.get("type") == "gesture":
         gesture = event.get("gesture")
@@ -282,6 +285,51 @@ def cloud_open_campaign(record):
     st.session_state.action_tasks = record.get("action_tasks") or []
     st.rerun()
 
+
+def jarvis_chat_response(user_text):
+    """Return a conversational Gemini response grounded in the current campaign brief."""
+    key = api_key()
+    if not key:
+        return "I can chat once the Gemini API key is configured. Open Settings and add your key; please never share it in chat."
+    history = st.session_state.setdefault("jarvis_chat_history", [])
+    recent = history[-12:]
+    conversation = []
+    for item in recent:
+        role = "user" if item.get("role") == "user" else "model"
+        conversation.append({"role": role, "parts": [{"text": item.get("content", "")}]})
+    system_context = (
+        "You are J.A.R.V.I.S., a warm, intelligent, calm conversational AI assistant inside a "
+        "Crowdfunding Campaign OS. Speak naturally like a helpful person, not like a rigid command parser. "
+        "Answer general questions as well as crowdfunding, marketing, business, and campaign questions. "
+        "Use the supplied campaign facts when relevant, but do not pretend to know facts that are not supplied. "
+        "Never invent metrics, research, testimonials, campaign progress, or actions. "
+        "You may explain how to do something, but do not claim to have changed app data or performed external actions "
+        "unless the app explicitly confirms that action. Ask one concise clarifying question when necessary. "
+        "Keep ordinary conversation friendly and concise; provide more detail when asked.\n\n"
+        "CURRENT CAMPAIGN BRIEF:\n" + brief_text()
+    )
+    contents = [{"role": "user", "parts": [{"text": system_context + "\n\nUser says: " + user_text}]}]
+    contents = conversation + contents
+    url = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent"
+    try:
+        response = requests.post(
+            url + "?key=" + key,
+            headers={"Content-Type": "application/json"},
+            json={"contents": contents, "generationConfig": {"temperature": 0.7, "maxOutputTokens": 1800}},
+            timeout=60
+        )
+        if response.status_code != 200:
+            return f"I could not reach my conversational engine just now (Gemini error {response.status_code}). Please try again."
+        data = response.json()
+        parts = data.get("candidates", [{}])[0].get("content", {}).get("parts", [])
+        answer = "".join(part.get("text", "") for part in parts if "text" in part).strip()
+        return answer or "I am here, but I did not receive a complete answer. Could you ask me once more?"
+    except requests.exceptions.Timeout:
+        return "That took too long to process. Please try again with a shorter question."
+    except Exception:
+        return "I ran into a connection issue. Please check the app's internet connection and try again."
+
+
 def page_header(title, subtitle):
     st.title(title)
     st.caption(subtitle)
@@ -447,7 +495,59 @@ elif page == "Creative Studio":
     if st.button("Generate creative brief", type="primary"):
         ask_ai(f"Create a production-ready creative brief for {asset} on {channel}. Include composition, copy hierarchy, visual direction, accessibility, variants to test and image-generation prompts. Do not show unverified product features, endorsements or results.", notes)
 
+el
+if page == "Holographic Command Deck":
+    page_header("J.A.R.V.I.S. // HOLOGRAPHIC COMMAND DECK", "Conversational AI and a hologram-inspired interactive command environment.")
+    st.markdown("""
+    <style>
+    .holo-stage{position:relative;overflow:hidden;border:1px solid rgba(65,229,255,.55);border-radius:22px;padding:22px 18px;background:radial-gradient(circle at 50% 45%,rgba(19,179,222,.18),transparent 31%),linear-gradient(145deg,#06172a,#10112b 72%,#061522);box-shadow:0 0 30px rgba(48,218,255,.13),inset 0 0 35px rgba(91,103,255,.10);min-height:210px;text-align:center}
+    .holo-core{width:112px;height:112px;border:2px solid #62efff;border-radius:50%;margin:4px auto 13px;display:grid;place-items:center;position:relative;color:#bffaff;font:700 13px Orbitron,Arial;letter-spacing:2px;text-shadow:0 0 12px #36eaff;box-shadow:0 0 22px rgba(53,232,255,.45),inset 0 0 20px rgba(53,232,255,.2);animation:holoPulse 3s ease-in-out infinite}
+    .holo-core:before,.holo-core:after{content:"";position:absolute;inset:-12px;border:1px solid rgba(75,229,255,.55);border-radius:50%;transform:rotateX(68deg);animation:holoSpin 8s linear infinite}
+    .holo-core:after{inset:-22px;transform:rotateX(68deg) rotateZ(60deg);animation-direction:reverse}
+    .holo-label{color:#8eeeff;font:11px Orbitron,Arial;letter-spacing:2px}
+    .holo-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:9px;margin-top:14px}
+    .holo-tile{border:1px solid rgba(63,217,255,.35);border-radius:12px;padding:11px 5px;background:linear-gradient(130deg,rgba(8,67,91,.65),rgba(43,31,91,.55));color:#d8faff;font:10px Orbitron,Arial;letter-spacing:1px}
+    @keyframes holoPulse{50%{box-shadow:0 0 38px rgba(53,232,255,.6),inset 0 0 26px rgba(53,232,255,.3);transform:scale(1.025)}}
+    @keyframes holoSpin{to{transform:rotateX(68deg) rotateZ(360deg)}}
+    @media(max-width:600px){.holo-grid{grid-template-columns:repeat(3,1fr)}.holo-stage{padding:17px 10px}}
+    </style>
+    <div class="holo-stage">
+      <div class="holo-core">J.A.R.V.I.S.</div>
+      <div class="holo-label">HOLOGRAPHIC SYSTEM // ONLINE</div>
+      <div class="holo-grid">
+        <div class="holo-tile">◉ CONVERSATION</div><div class="holo-tile">⌖ CAMPAIGN DATA</div><div class="holo-tile">✧ GESTURE LINK</div>
+      </div>
+    </div>
+    """, unsafe_allow_html=True)
+    st.caption("The hologram is a screen-based visual interface. Hand tracking uses your camera when you activate it in the J.A.R.V.I.S. control panel above.")
+    if "jarvis_chat_history" not in st.session_state:
+        st.session_state.jarvis_chat_history = []
+    pending = st.session_state.pop("jarvis_chat_pending", "")
+    if pending:
+        st.session_state.jarvis_chat_history.append({"role":"user","content":pending})
+        with st.spinner("J.A.R.V.I.S. is thinking..."):
+            answer = jarvis_chat_response(pending)
+        st.session_state.jarvis_chat_history.append({"role":"assistant","content":answer})
+        st.session_state["jarvis_reply"] = answer[:220]
+    for message in st.session_state.jarvis_chat_history[-20:]:
+        with st.chat_message(message["role"]):
+            st.markdown(message["content"])
+    prompt = st.chat_input("Talk naturally to J.A.R.V.I.S. ...")
+    if prompt:
+        st.session_state.jarvis_chat_history.append({"role":"user","content":prompt})
+        with st.spinner("J.A.R.V.I.S. is thinking..."):
+            answer = jarvis_chat_response(prompt)
+        st.session_state.jarvis_chat_history.append({"role":"assistant","content":answer})
+        st.session_state["jarvis_reply"] = answer[:220]
+        st.rerun()
+    c1, c2 = st.columns([1,3])
+    if c1.button("Clear conversation"):
+        st.session_state.jarvis_chat_history = []
+        st.rerun()
+    c2.caption("Conversation history stays in this app session and is cleared when the session resets. Voice replies use your browser's speech synthesis.")
+
 elif page == "Overview":
+
 
     st.markdown('<div class="hero"><h1>🚀 Crowdfunding Campaign OS</h1><p>Your workspace for turning a campaign idea into a researched, prepared, and well-managed launch.</p></div>', unsafe_allow_html=True)
     st.subheader("Campaign workspace")
