@@ -787,6 +787,19 @@ elif page == "Shopify Prospecting":
     page_header("Shopify Store Intelligence", "Find, qualify and prioritise Shopify stores using public storefront evidence.")
     st.markdown("Build a prospect list, separate likely newer stores from established stores, spot visible conversion gaps, and prepare tailored outreach.")
     st.info("Important: a storefront scan cannot prove that a store has no sales. We flag observable conversion-friction signals, not private revenue or order data. Only scan public websites you are permitted to access.")
+    with st.expander("🌐 Discover candidate Shopify stores with AI search", expanded=True):
+        niche = st.text_input("Store niche / product category", placeholder="e.g. skincare, fashion, home fitness")
+        geography = st.text_input("Target market / country", placeholder="e.g. United States, United Kingdom")
+        criteria = st.text_input("Optional qualification focus", placeholder="e.g. independent brands, visible website improvements")
+        if st.button("Find candidate stores", key="shopify_discover", type="primary"):
+            if not niche.strip():
+                st.warning("Enter a niche or product category first.")
+            else:
+                ask_ai(
+                    "Use Google Search grounding to find up to 12 real candidate Shopify storefronts matching the niche and geography. Return each store name, public website URL, evidence that it appears to use Shopify, product category, and source URLs. Prefer independent active storefronts. Do not invent stores, owners, emails, revenue, or sales status. Mark platform identification as probable unless verified by source evidence. These are candidates for manual scanning, not confirmed prospects.",
+                    f"Niche: {niche}\\nGeography: {geography or 'Not specified'}\\nQualification focus: {criteria or 'Independent storefronts'}",
+                    web_search=True
+                )
     url_input = st.text_area("Store URLs (one per line)", height=110, placeholder="https://example-store.com\nhttps://another-store.com")
     uploaded = st.file_uploader("Or import a CSV with a 'url' column", type=["csv"], key="shopify_leads_csv")
     if st.button("🔎 Scan storefronts", type="primary", use_container_width=True):
