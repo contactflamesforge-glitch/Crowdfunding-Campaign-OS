@@ -50,7 +50,7 @@ PAGES = [
     "Overview", "Campaign Brief", "Campaign Analyzer", "Market & Audience",
     "Campaign Story", "Reward Strategy", "Pre-Launch Planner",
     "Marketing Studio", "Launch Manager", "Performance Analyst",
-    "Backer Communications", "Campaign Library", "Command Centre", "Autopilot", "Backer Discovery", "Creative Studio", "Holographic Command Deck", "Cloud Account", "Settings"
+    "Backer Communications", "Campaign Library", "Command Centre", "Autopilot", "Backer Discovery", "Creative Studio", "Shopify Prospecting", "Holographic Command Deck", "Cloud Account", "Settings"
 ]
 
 
@@ -64,6 +64,7 @@ HOLO_PANELS = [
     ("Performance Analyst", "Review campaign performance"),
     ("Backer Discovery", "Research potential backers"),
     ("Creative Studio", "Prepare creative concepts"),
+    ("Shopify Prospecting", "Find Shopify stores and identify evidence-backed growth opportunities"),
     ("Command Centre", "View campaign operations")
 ]
 
@@ -90,6 +91,7 @@ def handle_jarvis_event(event):
             (["autopilot", "mission planner"], "Autopilot"),
             (["backer discovery", "find backers"], "Backer Discovery"),
             (["creative studio", "create visuals"], "Creative Studio"),
+            (["shopify", "find stores", "store prospecting", "store leads"], "Shopify Prospecting"),
             (["holographic", "hologram", "command deck", "talk to jarvis", "jarvis chat"], "Holographic Command Deck"),
             (["settings"], "Settings")
         ]
@@ -779,6 +781,104 @@ elif page == "Backer Communications":
     if st.button("Draft backer message", type="primary"):
         ask_ai(f"Draft a {kind} message to backers. Be transparent, specific, respectful, and clear about what is known, unknown, and happening next. Never conceal a material delay or invent progress.", facts)
 
+
+
+elif page == "Shopify Prospecting":
+    page_header("Shopify Store Intelligence", "Find, qualify and prioritise Shopify stores using public storefront evidence.")
+    st.markdown("Build a prospect list, separate likely newer stores from established stores, spot visible conversion gaps, and prepare tailored outreach.")
+    st.info("Important: a storefront scan cannot prove that a store has no sales. We flag observable conversion-friction signals, not private revenue or order data. Only scan public websites you are permitted to access.")
+    url_input = st.text_area("Store URLs (one per line)", height=110, placeholder="https://example-store.com\nhttps://another-store.com")
+    uploaded = st.file_uploader("Or import a CSV with a 'url' column", type=["csv"], key="shopify_leads_csv")
+    if st.button("🔎 Scan storefronts", type="primary", use_container_width=True):
+        import csv
+        import io
+        urls = [line.strip() for line in url_input.splitlines() if line.strip()]
+        if uploaded:
+            try:
+                rows = list(csv.DictReader(io.StringIO(uploaded.getvalue().decode("utf-8-sig"))))
+                urls.extend(row.get("url", "").strip() for row in rows if row.get("url", "").strip())
+            except Exception as exc:
+                st.error("Could not read CSV: " + str(exc))
+        urls = list(dict.fromkeys(urls))[:20]
+        if not urls:
+            st.warning("Add at least one store URL or upload a CSV.")
+        else:
+            from shopify_prospecting import scan_store
+            results = []
+            progress = st.progress(0)
+            for i, store_url in enumerate(urls):
+                try:
+                    results.append(scan_store(store_url))
+                except Exception as exc:
+                    results.append({"url": store_url, "domain": store_url, "title": "Scan failed", "is_shopify": False,
+                                    "emails": [], "store_age_hint": "Unknown", "opportunity_score": 0,
+                                    "sales_status": "Not assessed", "gaps": [], "error": str(exc)})
+                progress.progress((i + 1) / len(urls))
+            st.session_state.shopify_store_leads = results
+            st.success(f"Scanned {len(results)} storefront(s).")
+    leads = st.session_state.get("shopify_store_leads", [])
+    if leads:
+        import csv
+        import io
+        st.divider()
+        st.subheader("Prospect filters")
+        f1, f2, f3 = st.columns(3)
+        age_filter = f1.selectbox("Store maturity", ["All", "Likely new / recent signal", "Established signal", "Unclear"])
+        shopify_filter = f2.selectbox("Platform", ["All", "Shopify only", "Not confirmed Shopify"])
+        need_filter = f3.selectbox("Opportunity", ["All", "Higher visible friction", "Some / unclear"])
+        visible = []
+        for lead in leads:
+            age = lead.get("store_age_hint", "")
+            if age_filter == "Likely new / recent signal" and age != "Recent/current-year signal":
+                continue
+            if age_filter == "Established signal" and age != "Established signal":
+                continue
+            if age_filter == "Unclear" and age != "Store age unclear":
+                continue
+            if shopify_filter == "Shopify only" and not lead.get("is_shopify"):
+                continue
+            if shopify_filter == "Not confirmed Shopify" and lead.get("is_shopify"):
+                continue
+            if need_filter == "Higher visible friction" and lead.get("opportunity_score", 0) < 42:
+                continue
+            if need_filter == "Some / unclear" and lead.get("opportunity_score", 0) >= 42:
+                continue
+            visible.append(lead)
+        k1, k2, k3, k4 = st.columns(4)
+        k1.metric("Scanned", len(leads))
+        k2.metric("Shopify confirmed", sum(bool(x.get("is_shopify")) for x in leads))
+        k3.metric("Emails found", sum(bool(x.get("emails")) for x in leads))
+        k4.metric("Visible friction leads", sum(x.get("opportunity_score", 0) >= 42 for x in leads))
+        st.caption("Filters affect the table below. Maturity labels are weak public signals, not verified store launch dates.")
+        for lead in visible:
+            with st.container(border=True):
+                left, right = st.columns([4, 1])
+                left.markdown("**" + str(lead.get("title", lead.get("domain", "Store"))) + "**")
+                left.write(lead.get("url", ""))
+                left.caption(("Shopify detected" if lead.get("is_shopify") else "Shopify not confirmed") + " · " + lead.get("store_age_hint", "Unknown"))
+                if lead.get("emails"):
+                    left.write("Public emails: " + ", ".join(lead["emails"]))
+                else:
+                    left.write("No public email found on the scanned page.")
+                if lead.get("gaps"):
+                    left.write("Visible opportunities: " + "; ".join(lead["gaps"]))
+                if lead.get("error"):
+                    left.warning(lead["error"])
+                right.metric("Opportunity", str(lead.get("opportunity_score", 0)) + "/100")
+                right.caption(lead.get("sales_status", ""))
+        if visible and st.button("🧠 Generate AI opportunity analysis + outreach drafts", type="primary"):
+            evidence = json.dumps(visible[:12], ensure_ascii=False, indent=2)
+            ask_ai(
+                "Act as a careful Shopify growth consultant and B2B prospect researcher. For each supplied store, identify the strongest evidence-backed growth opportunity, explain what evidence supports it, list what cannot be known from a public scan, and create one concise personalised cold email offering a relevant service. Use only the supplied public evidence; do not claim the store has no sales, invent the owner's name, or fabricate metrics. Keep drafts respectful, specific, and draft-only. Return one section per store.",
+                "PUBLIC STOREFRONT SCAN RESULTS:\\n" + evidence
+            )
+        export_buffer = io.StringIO()
+        writer = csv.DictWriter(export_buffer, fieldnames=["url", "title", "is_shopify", "store_age_hint", "emails", "opportunity_score", "sales_status", "gaps"])
+        writer.writeheader()
+        for lead in leads:
+            writer.writerow({**lead, "emails": "; ".join(lead.get("emails", [])), "gaps": "; ".join(lead.get("gaps", []))})
+        st.download_button("⬇ Export all prospects as CSV", export_buffer.getvalue(), "shopify-prospects.csv", "text/csv")
+        st.caption("Outreach is generated as drafts only. No email is sent and no Shopify account is accessed by this first research phase.")
 
 elif page == "Cloud Account":
     page_header("Cloud Account", "Sign in to securely save campaigns to your private Supabase database.")
