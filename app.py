@@ -68,6 +68,46 @@ HOLO_PANELS = [
     ("Command Centre", "View campaign operations")
 ]
 
+def holo_panel_order():
+    """Return a validated user-session ordering for the holographic panels."""
+    order = st.session_state.get("holo_panel_order")
+    expected = list(range(len(HOLO_PANELS)))
+    valid = (
+        isinstance(order, list)
+        and len(order) == len(expected)
+        and all(type(item) is int for item in order)
+        and sorted(order) == expected
+    )
+    if not valid:
+        order = expected
+        st.session_state["holo_panel_order"] = order
+    return list(order)
+
+
+def move_holo_panel(panel_index, direction):
+    """Move a panel one position in the user's preferred panel order."""
+    order = holo_panel_order()
+    if panel_index not in order:
+        return
+    current = order.index(panel_index)
+    destination = max(0, min(len(order) - 1, current + direction))
+    if destination != current:
+        order.insert(destination, order.pop(current))
+        st.session_state["holo_panel_order"] = order
+
+
+def step_holo_panel(direction):
+    """Focus the previous or next panel in the current visible order."""
+    order = holo_panel_order()
+    selected = st.session_state.get("holo_panel_index", order[0])
+    if selected not in order:
+        selected = order[0]
+    position = order.index(selected)
+    selected = order[(position + direction) % len(order)]
+    st.session_state["holo_panel_index"] = selected
+    return selected
+
+
 def handle_jarvis_event(event):
     if not isinstance(event, dict):
         return
@@ -104,29 +144,74 @@ def handle_jarvis_event(event):
             st.session_state["workspace_page"] = "Holographic Command Deck"
             st.session_state["jarvis_reply"] = "Of course. Let us talk."
             return
+    elif event.get("type") == "holo_select":
+        try:
+            index = int(event.get("index", -1))
+        except (TypeError, ValueError):
+            return
+        if 0 <= index < len(HOLO_PANELS):
+            st.session_state["holo_panel_index"] = index
+            st.session_state["jarvis_reply"] = "Focused " + HOLO_PANELS[index][0] + "."
+        return
+    elif event.get("type") == "holo_navigate":
+        direction = -1 if event.get("direction") == "previous" else 1
+        index = step_holo_panel(direction)
+        st.session_state["jarvis_reply"] = "Focused " + HOLO_PANELS[index][0] + "."
+        return
+    elif event.get("type") == "holo_reorder":
+        candidate = event.get("order")
+        expected = list(range(len(HOLO_PANELS)))
+        if (
+            isinstance(candidate, list)
+            and len(candidate) == len(expected)
+            and all(type(item) is int for item in candidate)
+            and sorted(candidate) == expected
+        ):
+            st.session_state["holo_panel_order"] = list(candidate)
+            st.session_state["jarvis_reply"] = "Holographic panel layout updated."
+        return
+    elif event.get("type") == "holo_move":
+        try:
+            index = int(event.get("index", -1))
+            direction = -1 if event.get("direction") == "left" else 1
+        except (TypeError, ValueError):
+            return
+        move_holo_panel(index, direction)
+        return
+    elif event.get("type") == "holo_open":
+        index = st.session_state.get("holo_panel_index", 0)
+        if not isinstance(index, int) or not 0 <= index < len(HOLO_PANELS):
+            index = 0
+        target = HOLO_PANELS[index][0]
+        st.session_state["jarvis_return_page"] = "Holographic Command Deck"
+    elif event.get("type") == "holo_home":
+        st.session_state.pop("jarvis_return_page", None)
+        st.session_state["workspace_page"] = "Overview"
+        st.session_state["jarvis_reply"] = "Returning to Overview."
+        return
     elif event.get("type") == "gesture":
         gesture = event.get("gesture")
         if st.session_state.get("workspace_page") == "Holographic Command Deck":
-            if "holo_panel_index" not in st.session_state:
-                st.session_state["holo_panel_index"] = 0
-            idx = st.session_state["holo_panel_index"] % len(HOLO_PANELS)
+            order = holo_panel_order()
+            idx = st.session_state.get("holo_panel_index", order[0])
+            if idx not in order:
+                idx = order[0]
+            position = order.index(idx)
             if gesture in ("Thumb_Up", "Pointing_Up"):
-                idx = (idx - 1) % len(HOLO_PANELS)
+                idx = order[(position - 1) % len(order)]
                 st.session_state["holo_panel_index"] = idx
-                st.session_state["jarvis_reply"] = "Highlighted " + HOLO_PANELS[idx][0] + ". Make a victory sign to open it."
+                st.session_state["jarvis_reply"] = "Focused " + HOLO_PANELS[idx][0] + ". Make a victory sign to open it."
                 return
             if gesture in ("Thumb_Down", "Pointing_Down"):
-                idx = (idx + 1) % len(HOLO_PANELS)
+                idx = order[(position + 1) % len(order)]
                 st.session_state["holo_panel_index"] = idx
-                st.session_state["jarvis_reply"] = "Highlighted " + HOLO_PANELS[idx][0] + ". Make a victory sign to open it."
+                st.session_state["jarvis_reply"] = "Focused " + HOLO_PANELS[idx][0] + ". Make a victory sign to open it."
                 return
             if gesture == "Victory":
                 target = HOLO_PANELS[idx][0]
                 st.session_state["jarvis_return_page"] = "Holographic Command Deck"
-                st.session_state["workspace_page"] = target
                 st.session_state["jarvis_reply"] = "Opening " + target + ". Make a fist or use Back to return."
-                return
-            if gesture == "Closed_Fist":
+            elif gesture == "Closed_Fist":
                 st.session_state.pop("jarvis_return_page", None)
                 st.session_state["workspace_page"] = "Overview"
                 st.session_state["jarvis_reply"] = "Returning to Overview."
@@ -602,54 +687,27 @@ elif page == "Holographic Command Deck":
     st.caption("The hologram is a screen-based visual interface. Hand tracking uses your camera when you activate it in the J.A.R.V.I.S. control panel above.")
 
     st.subheader("Interactive holographic panels")
-    if "holo_panel_index" not in st.session_state:
-        st.session_state["holo_panel_index"] = 0
-    selected_index = st.session_state["holo_panel_index"] % len(HOLO_PANELS)
-    st.caption("Browse with Previous/Next, select any panel below, then open it. Camera gestures are optional; every action has a touch or click alternative.")
-    nav_a, nav_b, nav_c = st.columns([1, 2, 1])
-    if nav_a.button("← Previous", use_container_width=True, help="Focus the previous holographic panel"):
-        st.session_state["holo_panel_index"] = (selected_index - 1) % len(HOLO_PANELS)
-        st.rerun()
-    with nav_b:
-        panel_name, panel_description = HOLO_PANELS[selected_index]
-        st.markdown(
-            f'<div role="status" aria-live="polite" style="text-align:center;padding:12px;border:1px solid #35e8ff;border-radius:14px;background:linear-gradient(120deg,rgba(7,75,100,.55),rgba(57,36,105,.55));box-shadow:0 0 18px rgba(53,232,255,.22)"><div style="font-size:10px;letter-spacing:2px;color:#8eeeff">FOCUSED HOLOGRAM</div><div style="font-family:Orbitron,Arial;color:#eafaff;font-size:18px;margin:7px 0">{panel_name}</div><div style="color:#b8d8ec;font-size:13px">{panel_description}</div><div style="font-size:10px;color:#8eeeff;margin-top:7px">PANEL {selected_index + 1} / {len(HOLO_PANELS)}</div></div>',
-            unsafe_allow_html=True
-        )
-    if nav_c.button("Next →", use_container_width=True, help="Focus the next holographic panel"):
-        st.session_state["holo_panel_index"] = (selected_index + 1) % len(HOLO_PANELS)
-        st.rerun()
-
-    st.markdown("#### Select a panel")
-    panel_columns = st.columns(2)
-    for panel_number, (panel_title, panel_desc) in enumerate(HOLO_PANELS):
-        with panel_columns[panel_number % 2]:
-            with st.container(border=True):
-                focused = panel_number == selected_index
-                if st.button(
-                    ("✦ " if focused else "◈ ") + panel_title,
-                    key="holo_select_" + str(panel_number),
-                    type="primary" if focused else "secondary",
-                    help=panel_desc,
-                    use_container_width=True
-                ):
-                    st.session_state["holo_panel_index"] = panel_number
-                    st.rerun()
-                st.caption(panel_desc)
-                if focused:
-                    st.caption("✦ FOCUSED · READY TO OPEN")
-
-    open_col, home_col = st.columns([2, 1])
-    if open_col.button("✦ Open highlighted panel", type="primary", use_container_width=True):
-        st.session_state["jarvis_return_page"] = "Holographic Command Deck"
-        st.session_state["pending_workspace_page"] = panel_name
-        st.session_state["jarvis_reply"] = "Opening " + panel_name + ". Make a fist or use Back to return."
-        st.rerun()
-    if home_col.button("↩ Return to Overview", use_container_width=True):
-        st.session_state.pop("jarvis_return_page", None)
-        st.session_state["pending_workspace_page"] = "Overview"
-        st.session_state["jarvis_reply"] = "Returning to Overview."
-        st.rerun()
+    order = holo_panel_order()
+    selected_index = st.session_state.get("holo_panel_index", order[0])
+    if selected_index not in order:
+        selected_index = order[0]
+        st.session_state["holo_panel_index"] = selected_index
+    st.caption("Tap or click a panel to focus it. Use the arrows to rearrange panels, or drag the ↕ handle. Every gesture also has an on-screen control.")
+    holo_event = jarvis_controls(
+        reply=st.session_state.get("jarvis_reply", ""),
+        mode="holo_panels",
+        panels=[{"title": title, "description": description} for title, description in HOLO_PANELS],
+        order=order,
+        selected=selected_index,
+        key="jarvis_holo_panels",
+        default=None
+    )
+    if isinstance(holo_event, dict):
+        event_at = holo_event.get("at")
+        if event_at and event_at != st.session_state.get("jarvis_holo_last_event_at"):
+            st.session_state["jarvis_holo_last_event_at"] = event_at
+            handle_jarvis_event(holo_event)
+            st.rerun()
 
     if "jarvis_chat_history" not in st.session_state:
         st.session_state.jarvis_chat_history = []
