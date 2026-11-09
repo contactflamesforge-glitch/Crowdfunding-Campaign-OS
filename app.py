@@ -120,16 +120,22 @@ def handle_jarvis_event(event):
                 return
             if gesture == "Victory":
                 target = HOLO_PANELS[idx][0]
+                st.session_state["jarvis_return_page"] = "Holographic Command Deck"
                 st.session_state["workspace_page"] = target
-                st.session_state["jarvis_reply"] = "Opening " + target + "."
+                st.session_state["jarvis_reply"] = "Opening " + target + ". Make a fist or use Back to return."
                 return
             if gesture == "Closed_Fist":
                 st.session_state["workspace_page"] = "Overview"
                 st.session_state["jarvis_reply"] = "Returning to Overview."
                 return
         if gesture == "Closed_Fist":
-            st.session_state["jarvis_reply"] = "Back. Returning to the previous workspace."
-            st.session_state["jarvis_nav_action"] = "back"
+            return_page = st.session_state.pop("jarvis_return_page", None)
+            if return_page == "Holographic Command Deck":
+                st.session_state["workspace_page"] = return_page
+                st.session_state["jarvis_reply"] = "Returning to the Holographic Command Deck."
+            else:
+                st.session_state["jarvis_reply"] = "Back. Returning to Overview."
+                st.session_state["jarvis_nav_action"] = "back"
             return
         if gesture == "ILoveYou":
             st.session_state["jarvis_reply"] = "JARVIS exiting gesture mode. Returning to Overview."
@@ -147,6 +153,10 @@ def handle_jarvis_event(event):
             st.session_state["jarvis_nav_action"] = "down"
             return
     if target:
+        if target in [panel[0] for panel in HOLO_PANELS] and st.session_state.get("workspace_page") == "Holographic Command Deck":
+            st.session_state["jarvis_return_page"] = "Holographic Command Deck"
+        elif target == "Holographic Command Deck":
+            st.session_state.pop("jarvis_return_page", None)
         st.session_state["workspace_page"] = target
         st.session_state["jarvis_reply"] = f"Opening {target}."
 
@@ -176,8 +186,20 @@ if nav_action in ("up", "down"):
     st.session_state["workspace_page"] = PAGES[st.session_state["jarvis_page_index"]]
 if st.session_state.get("workspace_page") in PAGES and not nav_action:
     st.session_state["jarvis_page_index"] = PAGES.index(st.session_state["workspace_page"])
+pending_page = st.session_state.pop("pending_workspace_page", None)
+if pending_page in PAGES:
+    st.session_state["workspace_page"] = pending_page
+    st.session_state["jarvis_page_index"] = PAGES.index(pending_page)
+
 page = st.sidebar.radio("Workspace", PAGES, key="workspace_page", index=st.session_state["jarvis_page_index"])
 st.session_state["jarvis_page_index"] = PAGES.index(page)
+if page != "Holographic Command Deck" and st.session_state.get("jarvis_return_page") == "Holographic Command Deck":
+    back_col, _ = st.columns([2, 5])
+    if back_col.button("← Back to J.A.R.V.I.S. Command Deck", key="jarvis_back_to_deck", use_container_width=True):
+        st.session_state.pop("jarvis_return_page", None)
+        st.session_state["pending_workspace_page"] = "Holographic Command Deck"
+        st.session_state["jarvis_reply"] = "Returning to the command deck."
+        st.rerun()
 st.sidebar.caption("Plan carefully. Create honestly. Launch with evidence.")
 
 def api_key():
@@ -578,34 +600,51 @@ elif page == "Holographic Command Deck":
     if "holo_panel_index" not in st.session_state:
         st.session_state["holo_panel_index"] = 0
     selected_index = st.session_state["holo_panel_index"] % len(HOLO_PANELS)
-    st.markdown("Point/thumb up = previous panel, thumb down = next panel, victory = open highlighted panel, fist = return to Overview. Buttons also work without the camera.")
+    st.caption("Browse with Previous/Next, select any panel below, then open it. Camera gestures are optional; every action has a touch or click alternative.")
     nav_a, nav_b, nav_c = st.columns([1, 2, 1])
-    if nav_a.button("← Previous", use_container_width=True):
+    if nav_a.button("← Previous", use_container_width=True, help="Focus the previous holographic panel"):
         st.session_state["holo_panel_index"] = (selected_index - 1) % len(HOLO_PANELS)
         st.rerun()
     with nav_b:
         panel_name, panel_description = HOLO_PANELS[selected_index]
         st.markdown(
-            f'<div style="text-align:center;padding:12px;border:1px solid #35e8ff;border-radius:14px;background:linear-gradient(120deg,rgba(7,75,100,.55),rgba(57,36,105,.55));box-shadow:0 0 18px rgba(53,232,255,.22)"><div style="font-size:10px;letter-spacing:2px;color:#8eeeff">FOCUSED HOLOGRAM</div><div style="font-family:Orbitron,Arial;color:#eafaff;font-size:18px;margin:7px 0">{panel_name}</div><div style="color:#b8d8ec;font-size:13px">{panel_description}</div><div style="font-size:10px;color:#8eeeff;margin-top:7px">PANEL {selected_index + 1} / {len(HOLO_PANELS)}</div></div>',
+            f'<div role="status" aria-live="polite" style="text-align:center;padding:12px;border:1px solid #35e8ff;border-radius:14px;background:linear-gradient(120deg,rgba(7,75,100,.55),rgba(57,36,105,.55));box-shadow:0 0 18px rgba(53,232,255,.22)"><div style="font-size:10px;letter-spacing:2px;color:#8eeeff">FOCUSED HOLOGRAM</div><div style="font-family:Orbitron,Arial;color:#eafaff;font-size:18px;margin:7px 0">{panel_name}</div><div style="color:#b8d8ec;font-size:13px">{panel_description}</div><div style="font-size:10px;color:#8eeeff;margin-top:7px">PANEL {selected_index + 1} / {len(HOLO_PANELS)}</div></div>',
             unsafe_allow_html=True
         )
-    if nav_c.button("Next →", use_container_width=True):
+    if nav_c.button("Next →", use_container_width=True, help="Focus the next holographic panel"):
         st.session_state["holo_panel_index"] = (selected_index + 1) % len(HOLO_PANELS)
         st.rerun()
-    if st.button("✦ Open highlighted panel", type="primary", use_container_width=True):
-        st.session_state["workspace_page"] = panel_name
-        st.session_state["jarvis_reply"] = "Opening " + panel_name + "."
-        st.rerun()
 
-    st.markdown("#### Direct panel access")
+    st.markdown("#### Select a panel")
     panel_columns = st.columns(2)
     for panel_number, (panel_title, panel_desc) in enumerate(HOLO_PANELS):
         with panel_columns[panel_number % 2]:
-            if st.button("◈ " + panel_title, key="holo_open_" + str(panel_number), help=panel_desc, use_container_width=True):
-                st.session_state["holo_panel_index"] = panel_number
-                st.session_state["workspace_page"] = panel_title
-                st.session_state["jarvis_reply"] = "Opening " + panel_title + "."
-                st.rerun()
+            with st.container(border=True):
+                focused = panel_number == selected_index
+                if st.button(
+                    ("✦ " if focused else "◈ ") + panel_title,
+                    key="holo_select_" + str(panel_number),
+                    type="primary" if focused else "secondary",
+                    help=panel_desc,
+                    use_container_width=True
+                ):
+                    st.session_state["holo_panel_index"] = panel_number
+                    st.rerun()
+                st.caption(panel_desc)
+                if focused:
+                    st.caption("✦ FOCUSED · READY TO OPEN")
+
+    open_col, home_col = st.columns([2, 1])
+    if open_col.button("✦ Open highlighted panel", type="primary", use_container_width=True):
+        st.session_state["jarvis_return_page"] = "Holographic Command Deck"
+        st.session_state["pending_workspace_page"] = panel_name
+        st.session_state["jarvis_reply"] = "Opening " + panel_name + ". Make a fist or use Back to return."
+        st.rerun()
+    if home_col.button("↩ Return to Overview", use_container_width=True):
+        st.session_state.pop("jarvis_return_page", None)
+        st.session_state["pending_workspace_page"] = "Overview"
+        st.session_state["jarvis_reply"] = "Returning to Overview."
+        st.rerun()
 
     if "jarvis_chat_history" not in st.session_state:
         st.session_state.jarvis_chat_history = []
