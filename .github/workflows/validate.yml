@@ -1,0 +1,41 @@
+name: Validate Campaign OS
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  syntax:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+      - name: Compile Python application
+        run: python -m py_compile app.py
+      - name: Extract JARVIS component JavaScript
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          import re
+
+          html = Path("jarvis_component/index.html").read_text(encoding="utf-8")
+          scripts = re.findall(r'<script type="module">(.*?)</script>', html, flags=re.S)
+          if len(scripts) != 1:
+              raise SystemExit(f"Expected one module script, found {len(scripts)}")
+          Path("/tmp/jarvis-component.mjs").write_text(scripts[0], encoding="utf-8")
+          PY
+      - name: Check JARVIS JavaScript syntax
+        run: node --check /tmp/jarvis-component.mjs
