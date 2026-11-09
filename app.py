@@ -84,18 +84,6 @@ def holo_panel_order():
     return list(order)
 
 
-def move_holo_panel(panel_index, direction):
-    """Move a panel one position in the user's preferred panel order."""
-    order = holo_panel_order()
-    if panel_index not in order:
-        return
-    current = order.index(panel_index)
-    destination = max(0, min(len(order) - 1, current + direction))
-    if destination != current:
-        order.insert(destination, order.pop(current))
-        st.session_state["holo_panel_order"] = order
-
-
 def step_holo_panel(direction):
     """Focus the previous or next panel in the current visible order."""
     order = holo_panel_order()
@@ -169,14 +157,6 @@ def handle_jarvis_event(event):
         ):
             st.session_state["holo_panel_order"] = list(candidate)
             st.session_state["jarvis_reply"] = "Holographic panel layout updated."
-        return
-    elif event.get("type") == "holo_move":
-        try:
-            index = int(event.get("index", -1))
-            direction = -1 if event.get("direction") == "left" else 1
-        except (TypeError, ValueError):
-            return
-        move_holo_panel(index, direction)
         return
     elif event.get("type") == "holo_open":
         index = st.session_state.get("holo_panel_index", 0)
