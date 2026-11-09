@@ -210,7 +210,9 @@ def handle_jarvis_event(event):
             if gesture == "Victory":
                 target = HOLO_PANELS[idx][0]
                 st.session_state["jarvis_return_page"] = "Holographic Command Deck"
+                st.session_state["workspace_page"] = target
                 st.session_state["jarvis_reply"] = "Opening " + target + ". Make a fist or use Back to return."
+                return
             elif gesture == "Closed_Fist":
                 st.session_state.pop("jarvis_return_page", None)
                 st.session_state["workspace_page"] = "Overview"
