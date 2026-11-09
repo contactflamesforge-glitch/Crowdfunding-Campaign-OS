@@ -125,6 +125,7 @@ def handle_jarvis_event(event):
                 st.session_state["jarvis_reply"] = "Opening " + target + ". Make a fist or use Back to return."
                 return
             if gesture == "Closed_Fist":
+                st.session_state.pop("jarvis_return_page", None)
                 st.session_state["workspace_page"] = "Overview"
                 st.session_state["jarvis_reply"] = "Returning to Overview."
                 return
@@ -138,6 +139,7 @@ def handle_jarvis_event(event):
                 st.session_state["jarvis_nav_action"] = "back"
             return
         if gesture == "ILoveYou":
+            st.session_state.pop("jarvis_return_page", None)
             st.session_state["jarvis_reply"] = "JARVIS exiting gesture mode. Returning to Overview."
             st.session_state["jarvis_nav_action"] = "exit"
             st.session_state["workspace_page"] = "Overview"
