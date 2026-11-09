@@ -155,9 +155,10 @@ def handle_jarvis_event(event):
             st.session_state["jarvis_nav_action"] = "down"
             return
     if target:
-        if target in [panel[0] for panel in HOLO_PANELS] and st.session_state.get("workspace_page") == "Holographic Command Deck":
-            st.session_state["jarvis_return_page"] = "Holographic Command Deck"
-        elif target == "Holographic Command Deck":
+        if target in [panel[0] for panel in HOLO_PANELS]:
+            if st.session_state.get("workspace_page") == "Holographic Command Deck":
+                st.session_state["jarvis_return_page"] = "Holographic Command Deck"
+        else:
             st.session_state.pop("jarvis_return_page", None)
         st.session_state["workspace_page"] = target
         st.session_state["jarvis_reply"] = f"Opening {target}."
