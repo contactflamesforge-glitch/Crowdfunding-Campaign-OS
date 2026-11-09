@@ -27,8 +27,9 @@ Open the app in a modern browser (Chrome is recommended). In the left sidebar:
 
 1. Tap **VOICE**, allow microphone access, and speak a command such as "open Campaign Analyzer", "open Autopilot" or "open Creative Studio".
 2. Tap **HAND TRACK**, allow camera access, and show one hand clearly in good lighting.
-3. Gesture shortcuts: thumb/point up = move selection up; thumb down = move down; victory sign = select; closed fist = return to Overview; love-you sign = return to Overview.
-4. Tap **STOP** to stop microphone recognition, camera capture and speech output.
+3. In the **Holographic Command Deck**, thumb/point up = previous panel, thumb/point down = next panel, victory sign = open the focused panel, and closed fist = return to Overview. After opening a panel, a closed fist or the on-screen **Back to J.A.R.V.I.S. Command Deck** button returns to the deck. The love-you sign exits to Overview.
+4. Touch/click alternatives are always available: use **Previous** and **Next**, tap a panel to focus it, then choose **Open highlighted panel** or **Return to Overview**. Camera access is optional.
+5. Tap **STOP** to stop microphone recognition, camera capture and speech output.
 
 Voice recognition and camera gesture support depend on browser/device support and permissions. On some mobile browsers, speech recognition or camera processing may be unavailable or slower. The camera is processed in the browser; the app sends recognized gesture labels, not a video recording, to the Streamlit app.
 
