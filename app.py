@@ -191,6 +191,16 @@ def handle_jarvis_event(event):
         return
     elif event.get("type") == "gesture":
         gesture = event.get("gesture")
+        try:
+            confidence = float(event.get("confidence", 1.0))
+        except (TypeError, ValueError):
+            return
+        allowed_gestures = {
+            "Thumb_Up", "Pointing_Up", "Thumb_Down", "Pointing_Down",
+            "Victory", "Closed_Fist", "ILoveYou"
+        }
+        if confidence < 0.68 or gesture not in allowed_gestures:
+            return
         if st.session_state.get("workspace_page") == "Holographic Command Deck":
             order = holo_panel_order()
             idx = st.session_state.get("holo_panel_index", order[0])
