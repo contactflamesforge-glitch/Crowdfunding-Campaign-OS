@@ -89,7 +89,7 @@ def scan_store(raw_url):
         "shopify-payment-button", "shopify-checkout-api-token"
     ))
     email_matches = sorted(set(re.findall(
-        r"[A-Z0-9._%+-]+@[A-Z0-9.-]+\\.[A-Z]{2,}", response.text, re.I
+        r"[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}", response.text, re.I
     )))
     emails = [e for e in email_matches if not any(x in e.lower() for x in (
         "example.com", "sentry.io", "wixpress.com", "shopify.com"
@@ -106,7 +106,7 @@ def scan_store(raw_url):
         "newsletter": any(x in lower_text for x in ("newsletter", "subscribe", "join our mailing")),
         "social_links": any(x in lower_text for x in ("instagram.com", "facebook.com", "tiktok.com", "pinterest.com")),
     }
-    years = [int(y) for y in re.findall(r"(?:©|copyright|all rights reserved)[^0-9]{0,12}(20\\d{2})", lower_text)]
+    years = [int(y) for y in re.findall(r"(?:©|copyright|all rights reserved)[^0-9]{0,12}(20\d{2})", lower_text)]
     current_year = 2026
     if years:
         latest_year = max(years)
