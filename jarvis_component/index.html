@@ -24,8 +24,33 @@ button:focus-visible{outline:2px solid #a7f8ff;outline-offset:3px}
 button:disabled{opacity:.55;cursor:wait}
 @media(max-width:420px){.panel{padding:11px}.controls{gap:5px}button{font-size:11px;padding:9px 3px}video{height:230px}}
 @media(prefers-reduced-motion:reduce){.reactor,.reactor:before,.reactor:after,.dot{animation:none!important}}
+
+#command-ui[hidden],#holo-ui[hidden]{display:none!important}
+.holo-deck{width:100%;padding:15px;border:1px solid rgba(54,232,255,.6);border-radius:18px;background:radial-gradient(ellipse at 10% 0%,rgba(30,145,190,.18),transparent 48%),linear-gradient(145deg,#07182b,#11102b 75%,#081522);box-shadow:0 0 22px rgba(39,218,255,.17),inset 0 0 25px rgba(128,91,255,.1);position:relative;overflow:hidden}
+.holo-deck-title{font-size:12px;font-weight:800;letter-spacing:2px;color:#a9f5ff;margin-bottom:12px}
+.holo-actions{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px;margin-bottom:12px}
+.holo-focused{border:1px solid rgba(87,234,255,.75);border-radius:13px;padding:12px;background:linear-gradient(120deg,rgba(7,75,100,.55),rgba(57,36,105,.55));margin-bottom:12px;color:#eafaff}
+.holo-focused small{display:block;color:#8eeeff;letter-spacing:1.5px;font-size:10px}
+.holo-focused strong{display:block;font-size:17px;margin:5px 0}
+.holo-focused span{display:block;color:#b8d8ec;font-size:12px;line-height:1.45}
+.holo-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:9px}
+.holo-card{min-width:0;border:1px solid rgba(63,217,255,.32);border-radius:13px;padding:8px;background:linear-gradient(135deg,rgba(8,44,67,.82),rgba(37,27,76,.78));transition:border-color .15s,box-shadow .15s}
+.holo-card.is-selected{border:2px solid #65efff;box-shadow:0 0 17px rgba(53,232,255,.28),inset 0 0 15px rgba(53,232,255,.08)}
+.holo-card.is-drop-target{outline:2px dashed #a4f8ff;outline-offset:2px}
+.holo-card-main{width:100%;min-height:76px;text-align:left;display:flex;flex-direction:column;align-items:flex-start;justify-content:center;gap:5px}
+.holo-card-main .holo-card-title{font-size:12px;letter-spacing:.6px;color:#eaffff}
+.holo-card-main .holo-card-desc{font-size:11px;font-weight:400;line-height:1.35;color:#a9c7df}
+.holo-card-tools{display:flex;gap:6px;margin-top:7px}
+.holo-card-tools button{flex:1;min-width:0;min-height:44px;padding:7px 5px;font-size:12px}
+.holo-card-tools .holo-drag{flex:0 0 48px;touch-action:none;cursor:grab}
+.holo-gesture-guide{margin-top:12px;padding:10px;border:1px solid rgba(66,220,255,.25);border-radius:11px;background:rgba(3,18,34,.65);font-size:11px;line-height:1.55;color:#b8d8ec}
+.holo-gesture-guide b{color:#8eeeff}
+#holo-feedback{min-height:17px;margin-bottom:0}
+button{min-height:44px}
+@media(max-width:520px){.holo-deck{padding:11px}.holo-grid{grid-template-columns:1fr}.holo-actions{grid-template-columns:repeat(2,minmax(0,1fr))}.holo-card-main{min-height:68px}}
+@media(prefers-reduced-motion:reduce){.holo-card{transition:none}}
 </style></head><body>
-<div class="panel">
+<div id="command-ui"><div class="panel">
  <div class="brand"><span class="dot"></span> J.A.R.V.I.S. <span class="tag">CAMPAIGN COMMAND // ONLINE</span></div>
  <div class="reactor-wrap"><div class="reactor">J.A.R.V.I.S.</div></div>
  <div class="holo-status"><span class="holo-chip">AI CORE</span><span class="holo-chip">VOICE LINK</span><span class="holo-chip">OPTICAL SENSOR</span></div>
@@ -41,11 +66,29 @@ button:disabled{opacity:.55;cursor:wait}
  <span class="key">☝ Thumb / point up</span> Previous holographic panel &nbsp; <span class="key">👇 Thumb down</span> Next panel<br>
  <span class="key">✌ Victory</span> Open focused panel &nbsp; <span class="key">✊ Fist</span> Back to Overview<br>
  <span class="key">🤟 Love-you</span> Exit to Overview<br>
- <b>IN THE HOLOGRAPHIC DECK:</b> thumbs/point up or down to browse panels, victory to open the focused panel, fist to return to Overview. On other pages, gestures retain workspace navigation.<br><b>VOICE:</b> “Open Campaign Analyzer” to navigate, or ask a normal question to start a conversation in the Holographic Command Deck.</div>
+ <b>IN THE HOLOGRAPHIC DECK:</b> thumb/point up or down browses panels, victory opens the focused panel, and fist returns to Overview. Clear gestures only are accepted (68% confidence threshold); use the on-screen controls whenever recognition is uncertain.<br><b>VOICE:</b> “Open Campaign Analyzer” to navigate, or ask a normal question to start a conversation in the Holographic Command Deck.</div>
+</div></div>
+<div id="holo-ui" hidden>
+ <div class="holo-deck">
+  <div class="holo-deck-title">HOLOGRAPHIC PANEL ARRAY // TOUCH · MOUSE · GESTURE</div>
+  <div class="holo-actions">
+   <button type="button" data-action="previous">← Previous</button>
+   <button type="button" class="primary" data-action="open">✦ Open focused</button>
+   <button type="button" data-action="next">Next →</button>
+   <button type="button" data-action="home">↩ Overview</button>
+  </div>
+  <div id="holo-focused" class="holo-focused" role="status" aria-live="polite"><small>FOCUSED HOLOGRAM</small><strong>Loading panels…</strong><span>Choose a panel below.</span></div>
+  <div id="holo-grid" class="holo-grid" aria-label="Selectable holographic campaign panels"></div>
+  <div class="holo-gesture-guide"><b>HAND GESTURES</b><br>☝ Thumb / point up: previous panel · 👇 Thumb / point down: next panel<br>✌ Victory: open focused panel · ✊ Fist: return to Overview<br><b>MOVE PANELS:</b> Use ← / → buttons or hold the ↕ handle and drag a panel. Every action also works by tap or click.</div>
+  <div id="holo-feedback" class="status" role="status" aria-live="polite">Tap a panel to focus it. Camera gestures are optional.</div>
+ </div>
 </div>
 <script type="module">
 const statusEl=document.getElementById("status"),video=document.getElementById("video"),placeholder=document.getElementById("placeholder"),camstate=document.getElementById("camstate");
 let recognition=null,stream=null,recognizer=null,lastGesture="",lastGestureAt=0,lastReply="",running=false,lastFrameAt=0,cameraStartId=0;
+const mappedGestures=new Set(["Thumb_Up","Pointing_Up","Thumb_Down","Pointing_Down","Victory","Closed_Fist","ILoveYou"]);
+const commandUI=document.getElementById("command-ui"),holoUI=document.getElementById("holo-ui"),holoGrid=document.getElementById("holo-grid"),holoFocused=document.getElementById("holo-focused"),holoFeedback=document.getElementById("holo-feedback");
+let holoState={panels:[],order:[],selected:0,dragFrom:null,dragTarget:null,dragPointer:null};
 function send(value){parent.postMessage({isStreamlitMessage:true,type:"streamlit:setComponentValue",value:{...value,at:Date.now()}},"*")}
 function chooseMaleVoice(){const voices=window.speechSynthesis?.getVoices?.()||[];const preferred=[/Google UK English Male/i,/Microsoft.*(David|Mark|Guy|Ryan)/i,/Daniel/i,/Alex/i,/男/i];for(const pattern of preferred){const match=voices.find(v=>pattern.test(v.name));if(match)return match}return voices.find(v=>/^en[-_]/i.test(v.lang))||voices[0]||null}
 function speak(text){if(!text||!window.speechSynthesis)return;window.speechSynthesis.cancel();const u=new SpeechSynthesisUtterance(text);u.rate=1.03;u.pitch=0.88;const voice=chooseMaleVoice();if(voice)u.voice=voice;window.speechSynthesis.speak(u)}
@@ -53,11 +96,77 @@ if(window.speechSynthesis){window.speechSynthesis.onvoiceschanged=()=>chooseMale
 document.getElementById("voice").onclick=()=>{const SR=window.SpeechRecognition||window.webkitSpeechRecognition;if(!SR){statusEl.textContent="Voice recognition is not supported here. Try Chrome.";return}if(recognition){recognition.stop();recognition=null}recognition=new SR();recognition.lang="en-NG";recognition.interimResults=false;recognition.continuous=false;recognition.onstart=()=>statusEl.textContent="Listening. Speak a command…";recognition.onresult=e=>{const phrase=e.results[0][0].transcript;statusEl.textContent="Heard: "+phrase;send({type:"voice",text:phrase})};recognition.onerror=e=>statusEl.textContent="Voice issue: "+e.error+". Try again.";recognition.onend=()=>{if(recognition)statusEl.textContent="Voice ready. Tap Voice to speak again."};recognition.start()};
 document.getElementById("stop").onclick=()=>stopAll();
 function stopAll(){cameraStartId++;running=false;if(recognition){recognition.stop();recognition=null}if(stream){stream.getTracks().forEach(t=>t.stop());stream=null}if(recognizer){try{recognizer.close()}catch(e){}recognizer=null}video.srcObject=null;video.style.display="none";placeholder.style.display="grid";camstate.textContent="CAMERA OFFLINE";window.speechSynthesis?.cancel();statusEl.textContent="Voice and camera stopped."}
-async function startHands(){const cameraButton=document.getElementById("camera");if(running||cameraButton.disabled)return;const startId=++cameraStartId;cameraButton.disabled=true;try{if(!navigator.mediaDevices?.getUserMedia){statusEl.textContent="Camera needs a secure browser connection. Open the deployed HTTPS app in Chrome.";return}statusEl.textContent="Loading gesture engine…";const vision=await import("https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.14/+esm");const files=await vision.FilesetResolver.forVisionTasks("https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.14/wasm");const nextRecognizer=await vision.GestureRecognizer.createFromOptions(files,{baseOptions:{modelAssetPath:"https://storage.googleapis.com/mediapipe-models/gesture_recognizer/gesture_recognizer/float16/1/gesture_recognizer.task",delegate:"GPU"},runningMode:"VIDEO",numHands:1});if(startId!==cameraStartId){nextRecognizer.close();return}recognizer=nextRecognizer;const nextStream=await navigator.mediaDevices.getUserMedia({video:{facingMode:"user",width:{ideal:1280},height:{ideal:720}},audio:false});if(startId!==cameraStartId){nextStream.getTracks().forEach(t=>t.stop());return}stream=nextStream;video.srcObject=stream;video.style.display="block";placeholder.style.display="none";camstate.textContent="CAMERA ONLINE";await video.play();if(startId!==cameraStartId)return;running=true;lastFrameAt=0;statusEl.textContent="Camera active. Keep your hand well lit and inside the frame.";const loop=()=>{if(!running||!stream||!recognizer)return;const frameTime=performance.now();if(video.readyState>=2&&frameTime-lastFrameAt>=120){lastFrameAt=frameTime;const result=recognizer.recognizeForVideo(video,frameTime);const g=result.gestures?.[0]?.[0]?.categoryName||"";const now=Date.now();if(g&&g!=="None"&&g!==lastGesture&&now-lastGestureAt>850){lastGesture=g;lastGestureAt=now;statusEl.textContent="Gesture detected: "+g;send({type:"gesture",gesture:g})}else if(!g||g==="None"){lastGesture=""}}requestAnimationFrame(loop)};requestAnimationFrame(loop)}catch(e){if(startId===cameraStartId){if(stream){stream.getTracks().forEach(t=>t.stop());stream=null}if(recognizer){try{recognizer.close()}catch(closeError){}recognizer=null}video.srcObject=null;video.style.display="none";placeholder.style.display="grid";statusEl.textContent="Camera setup failed. Allow camera access, improve lighting, and retry. "+e.message;camstate.textContent="CAMERA ERROR"}}finally{cameraButton.disabled=false}}
+async function startHands(){const cameraButton=document.getElementById("camera");if(running||cameraButton.disabled)return;const startId=++cameraStartId;cameraButton.disabled=true;try{if(!navigator.mediaDevices?.getUserMedia){statusEl.textContent="Camera needs a secure browser connection. Open the deployed HTTPS app in Chrome.";return}statusEl.textContent="Loading gesture engine…";const vision=await import("https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.14/+esm");const files=await vision.FilesetResolver.forVisionTasks("https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.14/wasm");const nextRecognizer=await vision.GestureRecognizer.createFromOptions(files,{baseOptions:{modelAssetPath:"https://storage.googleapis.com/mediapipe-models/gesture_recognizer/gesture_recognizer/float16/1/gesture_recognizer.task",delegate:"GPU"},runningMode:"VIDEO",numHands:1});if(startId!==cameraStartId){nextRecognizer.close();return}recognizer=nextRecognizer;const nextStream=await navigator.mediaDevices.getUserMedia({video:{facingMode:"user",width:{ideal:1280},height:{ideal:720}},audio:false});if(startId!==cameraStartId){nextStream.getTracks().forEach(t=>t.stop());return}stream=nextStream;video.srcObject=stream;video.style.display="block";placeholder.style.display="none";camstate.textContent="CAMERA ONLINE";await video.play();if(startId!==cameraStartId)return;running=true;lastFrameAt=0;statusEl.textContent="Camera active. Keep your hand well lit and inside the frame.";const loop=()=>{if(!running||!stream||!recognizer)return;const frameTime=performance.now();if(video.readyState>=2&&frameTime-lastFrameAt>=120){lastFrameAt=frameTime;const result=recognizer.recognizeForVideo(video,frameTime);const category=result.gestures?.[0]?.[0];const g=category?.categoryName||"";const confidence=Number(category?.score||0);const now=Date.now();if(mappedGestures.has(g)&&confidence>=0.68&&g!==lastGesture&&now-lastGestureAt>900){lastGesture=g;lastGestureAt=now;statusEl.textContent="Gesture detected: "+g+" ("+Math.round(confidence*100)+"%)";send({type:"gesture",gesture:g,confidence:Number(confidence.toFixed(2))})}else if(!mappedGestures.has(g)||confidence<0.68){lastGesture=""}}requestAnimationFrame(loop)};requestAnimationFrame(loop)}catch(e){if(startId===cameraStartId){if(stream){stream.getTracks().forEach(t=>t.stop());stream=null}if(recognizer){try{recognizer.close()}catch(closeError){}recognizer=null}video.srcObject=null;video.style.display="none";placeholder.style.display="grid";statusEl.textContent="Camera setup failed. Allow camera access, improve lighting, and retry. "+e.message;camstate.textContent="CAMERA ERROR"}}finally{cameraButton.disabled=false}}
 document.getElementById("camera").onclick=startHands;
-window.addEventListener("message",e=>{const d=e.data;if(d?.type==="streamlit:render"){const args=d.args||{};if(args.reply&&args.reply!==lastReply){lastReply=args.reply;speak(args.reply)}}});
+function validPanelOrder(order,count){return Array.isArray(order)&&order.length===count&&order.every(x=>Number.isInteger(x)&&x>=0&&x<count)&&new Set(order).size===count}
+function renderHoloPanels(args){
+ holoState.panels=Array.isArray(args.panels)?args.panels:[];
+ holoState.order=validPanelOrder(args.order,holoState.panels.length)?args.order.slice():holoState.panels.map((_,i)=>i);
+ holoState.selected=Number.isInteger(args.selected)&&args.selected>=0&&args.selected<holoState.panels.length?args.selected:(holoState.order[0]??0);
+ const focused=holoState.panels[holoState.selected]||{title:"No panels",description:"No panels are available."};
+ holoFocused.replaceChildren();
+ const eyebrow=document.createElement("small");eyebrow.textContent="FOCUSED HOLOGRAM";
+ const title=document.createElement("strong");title.textContent=focused.title||"Untitled panel";
+ const description=document.createElement("span");description.textContent=focused.description||"";
+ holoFocused.append(eyebrow,title,description);
+ holoGrid.replaceChildren();
+ holoState.order.forEach((panelIndex,position)=>{
+  const panel=holoState.panels[panelIndex]||{};
+  const card=document.createElement("article");card.className="holo-card"+(panelIndex===holoState.selected?" is-selected":"");card.dataset.panelIndex=String(panelIndex);
+  const select=document.createElement("button");select.type="button";select.className="holo-card-main";select.dataset.action="select";select.dataset.index=String(panelIndex);select.setAttribute("aria-pressed",panelIndex===holoState.selected?"true":"false");
+  const panelTitle=document.createElement("span");panelTitle.className="holo-card-title";panelTitle.textContent=(panelIndex===holoState.selected?"✦ ":"◈ ")+(panel.title||"Panel");
+  const panelDesc=document.createElement("span");panelDesc.className="holo-card-desc";panelDesc.textContent=panel.description||"";
+  select.append(panelTitle,panelDesc);
+  const tools=document.createElement("div");tools.className="holo-card-tools";
+  const left=document.createElement("button");left.type="button";left.textContent="←";left.title="Move panel left";left.setAttribute("aria-label","Move "+(panel.title||"panel")+" left");left.dataset.action="move-left";left.dataset.index=String(panelIndex);left.disabled=position===0;
+  const drag=document.createElement("button");drag.type="button";drag.className="holo-drag";drag.textContent="↕";drag.title="Drag to move panel";drag.setAttribute("aria-label","Drag to move "+(panel.title||"panel"));drag.dataset.action="drag";drag.dataset.index=String(panelIndex);
+  const right=document.createElement("button");right.type="button";right.textContent="→";right.title="Move panel right";right.setAttribute("aria-label","Move "+(panel.title||"panel")+" right");right.dataset.action="move-right";right.dataset.index=String(panelIndex);right.disabled=position===holoState.order.length-1;
+  tools.append(left,drag,right);card.append(select,tools);holoGrid.append(card);
+ });
+}
+function reorderPanel(index,direction){
+ const next=holoState.order.slice(),position=next.indexOf(index),destination=position+direction;
+ if(position<0||destination<0||destination>=next.length)return;
+ const [item]=next.splice(position,1);next.splice(destination,0,item);
+ holoFeedback.textContent="Saving panel arrangement…";
+ send({type:"holo_reorder",order:next});
+}
+holoUI.addEventListener("click",e=>{
+ const button=e.target.closest("button[data-action]");if(!button)return;
+ const action=button.dataset.action,index=Number(button.dataset.index);
+ if(action==="select")send({type:"holo_select",index});
+ else if(action==="previous"||action==="next")send({type:"holo_navigate",direction:action});
+ else if(action==="open")send({type:"holo_open"});
+ else if(action==="home")send({type:"holo_home"});
+ else if(action==="move-left")reorderPanel(index,-1);
+ else if(action==="move-right")reorderPanel(index,1);
+});
+holoGrid.addEventListener("pointerdown",e=>{
+ const handle=e.target.closest("button[data-action='drag']");if(!handle)return;
+ e.preventDefault();holoState.dragFrom=Number(handle.dataset.index);holoState.dragTarget=holoState.dragFrom;holoState.dragPointer=e.pointerId;
+ try{handle.setPointerCapture(e.pointerId)}catch(err){}
+ holoFeedback.textContent="Dragging panel. Move over another panel and release.";
+});
+holoGrid.addEventListener("pointermove",e=>{
+ if(holoState.dragFrom===null||holoState.dragPointer!==e.pointerId)return;
+ const target=document.elementFromPoint(e.clientX,e.clientY)?.closest(".holo-card");
+ holoGrid.querySelectorAll(".holo-card").forEach(card=>card.classList.remove("is-drop-target"));
+ if(target&&holoGrid.contains(target)){holoState.dragTarget=Number(target.dataset.panelIndex);target.classList.add("is-drop-target")}
+});
+function finishPanelDrag(e){
+ if(holoState.dragFrom===null||holoState.dragPointer!==e.pointerId)return;
+ const from=holoState.order.indexOf(holoState.dragFrom),to=holoState.order.indexOf(holoState.dragTarget);
+ const next=holoState.order.slice();
+ if(from>=0&&to>=0&&from!==to){const [item]=next.splice(from,1);next.splice(to,0,item);send({type:"holo_reorder",order:next})}
+ holoState.dragFrom=null;holoState.dragTarget=null;holoState.dragPointer=null;
+ holoGrid.querySelectorAll(".holo-card").forEach(card=>card.classList.remove("is-drop-target"));
+}
+holoGrid.addEventListener("pointerup",finishPanelDrag);
+holoGrid.addEventListener("pointercancel",e=>{if(holoState.dragPointer===e.pointerId){holoState.dragFrom=null;holoState.dragTarget=null;holoState.dragPointer=null;holoGrid.querySelectorAll(".holo-card").forEach(card=>card.classList.remove("is-drop-target"))}});
+window.addEventListener("message",e=>{const d=e.data;if(d?.type==="streamlit:render"){const args=d.args||{};if(args.mode==="holo_panels"){commandUI.hidden=true;holoUI.hidden=false;renderHoloPanels(args)}else{holoUI.hidden=true;commandUI.hidden=false;if(args.reply&&args.reply!==lastReply){lastReply=args.reply;speak(args.reply)}}resizeFrame()}});
+
 parent.postMessage({isStreamlitMessage:true,type:"streamlit:componentReady",apiVersion:1},"*");
-const resizeFrame=()=>{const panel=document.querySelector(".panel");if(panel)parent.postMessage({isStreamlitMessage:true,type:"streamlit:setFrameHeight",height:Math.ceil(panel.scrollHeight+16)},"*")};
+const resizeFrame=()=>{const active=holoUI&&!holoUI.hidden?holoUI:commandUI;if(active)parent.postMessage({isStreamlitMessage:true,type:"streamlit:setFrameHeight",height:Math.ceil(active.scrollHeight+16)},"*")};
 resizeFrame();
-if("ResizeObserver" in window){new ResizeObserver(resizeFrame).observe(document.querySelector(".panel"))}else{window.addEventListener("resize",resizeFrame)}
+if("ResizeObserver" in window){new ResizeObserver(resizeFrame).observe(document.body)}else{window.addEventListener("resize",resizeFrame)}
 </script></body></html>
